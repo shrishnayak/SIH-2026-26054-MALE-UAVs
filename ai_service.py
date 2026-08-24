@@ -169,15 +169,15 @@ class PhysicsBaselineEngine:
 # ---------------------------------------------------------
 
 class TelemetryInput(BaseModel):
-    rpm: float = Field(..., ge=1500, le=6200, example=4850.0)
-    throttle_pct: float = Field(..., ge=0, le=100, example=78.5)
-    altitude_ft: float = Field(default=14500.0, ge=0, le=35000, example=14500.0)
-    egt: List[float] = Field(..., min_items=4, max_items=4, example=[845.0, 842.0, 968.0, 840.0])
-    cht: List[float] = Field(..., min_items=4, max_items=4, example=[107.0, 106.5, 134.0, 108.0])
-    map_bar: float = Field(..., ge=0.5, le=2.5, example=1.45)
-    oil_press_bar: float = Field(..., ge=0.5, le=7.0, example=3.75)
-    oil_temp_c: float = Field(default=99.0, example=99.0)
-    vibration_grms: float = Field(..., ge=0.05, le=5.0, example=1.15)
+    rpm: float = Field(..., ge=1500, le=6200, json_schema_extra={"example": 4850.0})
+    throttle_pct: float = Field(..., ge=0, le=100, json_schema_extra={"example": 78.5})
+    altitude_ft: float = Field(default=14500.0, ge=0, le=35000, json_schema_extra={"example": 14500.0})
+    egt: List[float] = Field(..., min_length=4, max_length=4, json_schema_extra={"example": [845.0, 842.0, 968.0, 840.0]})
+    cht: List[float] = Field(..., min_length=4, max_length=4, json_schema_extra={"example": [107.0, 106.5, 134.0, 108.0]})
+    map_bar: float = Field(..., ge=0.5, le=2.5, json_schema_extra={"example": 1.45})
+    oil_press_bar: float = Field(..., ge=0.5, le=7.0, json_schema_extra={"example": 3.75})
+    oil_temp_c: float = Field(default=99.0, json_schema_extra={"example": 99.0})
+    vibration_grms: float = Field(..., ge=0.05, le=5.0, json_schema_extra={"example": 1.15})
 
 
 class AnomalyResponse(BaseModel):
@@ -494,14 +494,17 @@ def rl_mission_replan(req: RlReplanRequest):
             "commanded_airspeed_kts": 95 if req.engine_health_index < 50 else 115
         })
 
-    flight_time_min = (dist_home_nm / 105.0) * 60.0
+    target_dist_nm = dist_aux_nm if target_destination == emergency_strip else dist_home_nm
+    commanded_speed = 95.0 if req.engine_health_index < 50 else 115.0
+    flight_time_min = max(0.1, (target_dist_nm / commanded_speed) * 60.0)
+    safety_margin = round(req.rul_hours / (flight_time_min / 60.0), 2)
 
     return {
         "action": "EMERGENCY_DIVERT_RTB" if requires_emergency_divert else "DERATE_AND_CONTINUE_MISSION",
         "target_recovery_field": target_destination["name"],
-        "distance_to_field_nm": round(dist_aux_nm if target_destination == emergency_strip else dist_home_nm, 1),
+        "distance_to_field_nm": round(target_dist_nm, 1),
         "estimated_flight_time_minutes": round(flight_time_min, 1),
-        "rul_safety_margin_factor": round(req.rul_hours / (flight_time_min / 60.0), 2),
+        "rul_safety_margin_factor": safety_margin,
         "rl_control_commands": {
             "recommended_throttle_pct": recommended_throttle_pct,
             "recommended_rpm": recommended_rpm,
