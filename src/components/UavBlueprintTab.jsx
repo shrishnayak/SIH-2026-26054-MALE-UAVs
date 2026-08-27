@@ -364,63 +364,65 @@ export const UavBlueprintTab = () => {
       {/* Left / Main: 3D CAD Blueprint Canvas */}
       <div className="flex-1 relative hud-glass rounded-lg overflow-hidden flex flex-col">
         {/* HUD Overlay Bar atop 3D Canvas */}
-        <div className="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-2">
-          <div className="px-3 py-1 bg-black/70 border border-hud-cyan/40 rounded text-xs font-mono text-hud-cyan flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-hud-cyan animate-pulse"></span>
-            <span>UAV-01 3D DIGITAL TWIN CAD WORKSPACE</span>
+        <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2 max-w-full">
+            <div className="px-3 py-1 bg-black/70 border border-hud-cyan/40 rounded text-xs font-mono text-hud-cyan flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-hud-cyan animate-pulse"></span>
+              <span>UAV-01 3D DIGITAL TWIN CAD WORKSPACE</span>
+            </div>
+
+            <div className="px-3 py-1 bg-black/70 border border-slate-700 rounded text-xs font-mono text-slate-300 whitespace-nowrap">
+              ENGINE: ROTAX 915 iS (S/N: RTX-915-0842)
+            </div>
+
+            <button
+              onClick={() => setIsExploded(!isExploded)}
+              className={`px-3 py-1 rounded text-xs font-mono border transition-all flex items-center gap-1.5 ${
+                isExploded
+                  ? 'bg-hud-cyan text-black font-bold border-hud-cyan shadow-hud-cyan'
+                  : 'bg-black/70 text-hud-cyan border-hud-cyan/40 hover:bg-hud-cyan/20'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              {isExploded ? 'EXPLODED VIEW: ON' : 'EXPLODED VIEW: OFF'}
+            </button>
           </div>
 
-          <div className="px-3 py-1 bg-black/70 border border-slate-700 rounded text-xs font-mono text-slate-300">
-            ENGINE: ROTAX 915 iS (S/N: RTX-915-0842)
+          {/* Camera Preset Toolbar */}
+          <div className="flex items-center gap-1.5 bg-black/80 border border-slate-700/80 p-1 rounded-md flex-wrap justify-end">
+            <button
+              onClick={() => handleResetCamera('ISOMETRIC')}
+              className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'ISOMETRIC' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              ISO 3D
+            </button>
+            <button
+              onClick={() => handleResetCamera('TOP_DOWN')}
+              className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'TOP_DOWN' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              TOP CAD
+            </button>
+            <button
+              onClick={() => handleResetCamera('ELEVATION')}
+              className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'ELEVATION' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              SIDE ELEV
+            </button>
+            <button
+              onClick={() => handleResetCamera('ENGINE_ZOOM')}
+              className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'ENGINE_ZOOM' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              ENGINE BAY
+            </button>
           </div>
-
-          <button
-            onClick={() => setIsExploded(!isExploded)}
-            className={`px-3 py-1 rounded text-xs font-mono border transition-all flex items-center gap-1.5 ${
-              isExploded
-                ? 'bg-hud-cyan text-black font-bold border-hud-cyan shadow-hud-cyan'
-                : 'bg-black/70 text-hud-cyan border-hud-cyan/40 hover:bg-hud-cyan/20'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            {isExploded ? 'EXPLODED VIEW: ON' : 'EXPLODED VIEW: OFF'}
-          </button>
-        </div>
-
-        {/* Camera Preset Toolbar */}
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/80 border border-slate-700/80 p-1 rounded-md">
-          <button
-            onClick={() => handleResetCamera('ISOMETRIC')}
-            className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
-              cameraView === 'ISOMETRIC' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            ISO 3D
-          </button>
-          <button
-            onClick={() => handleResetCamera('TOP_DOWN')}
-            className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
-              cameraView === 'TOP_DOWN' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            TOP CAD
-          </button>
-          <button
-            onClick={() => handleResetCamera('ELEVATION')}
-            className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
-              cameraView === 'ELEVATION' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            SIDE ELEV
-          </button>
-          <button
-            onClick={() => handleResetCamera('ENGINE_ZOOM')}
-            className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
-              cameraView === 'ENGINE_ZOOM' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            ENGINE BAY
-          </button>
         </div>
 
         {/* 3D R3F Canvas */}
