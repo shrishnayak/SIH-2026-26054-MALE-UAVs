@@ -52,35 +52,14 @@
 ---
 
 ## ⚡ Quick Start Guide
-
-### 1. Prerequisites
-- **Node.js**: v18.0+ / v20.0+
-- **Python**: v3.10+ / v3.11+ / v3.12+ (for FastAPI microservice)
-
-### 2. Frontend & Telemetry Engine Setup
-```bash
-# Install dependencies
-npm install
-
-# Start the 100 Hz CAN Bus Telemetry Server (Port 5000)
-node server.js
-
-# In a separate terminal, start the Vite Tactical Web Application (Port 5173)
-npm run dev
-```
-
-### 3. (Optional) Python AI & Physics Microservice Setup
-```bash
-# Install Python requirements
-pip install -r requirements.txt
-
-# Run FastAPI PyTorch Microservice (Port 8000)
-python ai_service.py
-```
-
-*Note: The frontend includes an autonomous internal physics & AI bridge that automatically synthesizes all 100 Hz telemetry, residual computations, and prognostics with zero latency even in standalone mode.*
-
----
+Parameter,Specification
+Engine Base,"Rotax 915 iS / 916 iS (1414 cc, Turbocharged, Intercooled, Dual FADEC)"
+Telemetry Frequency,100 Hz (10ms frame intervals)
+Internal Data Bus,CAN Bus (CAN High / CAN Low) using Differential Signaling
+Frontend Stack,"React 18, Vite, React Three Fiber (Three.js), TailwindCSS"
+Backend Architecture,"Python 3.10+, FastAPI, WebSockets, PySerial"
+AI Framework,PyTorch (LSTM / Transformer-based Time Series Models)
+End-to-End Latency,<100 ms (Hardware Receiver → UI Render)
 
 ## 📐 Tab Features & Capabilities
 
@@ -144,5 +123,7 @@ $$\text{CI}_{95\%} = \left[ \mu_{\text{RUL}} - 1.96\sigma, \;\; \mu_{\text{RUL}}
 
 ---
 
-## 🚀 Deployment to Vercel
-The repository includes a production-ready `vercel.json` configured with single-page application routing rewrites. Simply push this repo to GitHub and import it into Vercel.
+🛡 Defense & Certification Standards
+STANAG 4671: NATO UAV Systems Airworthiness Requirements (USAR) covering engine safety, control system redundancy, and data communication resilience.
+
+DO-178C / MIL-STD: Guidelines for safety-critical airborne software development, ensuring deterministic behavior and high data integrity.
