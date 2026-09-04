@@ -49,37 +49,37 @@ export default function App() {
 
   // Tabs Configuration
   const tabs = [
-    { id: 'BLUEPRINT', label: '📐 3D CAD BLUEPRINT', icon: Box, component: UavBlueprintTab },
-    { id: 'TELEMETRY', label: '📊 LIVE TELEMETRY', icon: Activity, component: TelemetryTab },
-    { id: 'PROGNOSTICS', label: '🧠 AI PROGNOSTICS & XAI', icon: Brain, component: PrognosticsTab },
-    { id: 'MISSION_MAP', label: '🗺️ RL REPLANNER', icon: Map, component: MissionMapTab },
-    { id: 'FLEET', label: '🛸 SWARM FLEET', icon: Users, component: FleetTab },
-    { id: 'SANDBOX', label: "⚖️ JUDGE'S SANDBOX", icon: Sliders, component: JudgesSandboxTab },
-    { id: 'COPILOT', label: '📄 COPILOT & REPORT', icon: FileText, component: CopilotTab },
+    { id: 'BLUEPRINT', label: '3D CAD BLUEPRINT', icon: Box, component: UavBlueprintTab },
+    { id: 'TELEMETRY', label: 'LIVE TELEMETRY', icon: Activity, component: TelemetryTab },
+    { id: 'PROGNOSTICS', label: 'AI PROGNOSTICS & XAI', icon: Brain, component: PrognosticsTab },
+    { id: 'MISSION_MAP', label: 'RL REPLANNER', icon: Map, component: MissionMapTab },
+    { id: 'FLEET', label: 'SWARM FLEET', icon: Users, component: FleetTab },
+    { id: 'SANDBOX', label: "JUDGE'S SANDBOX", icon: Sliders, component: JudgesSandboxTab },
+    { id: 'COPILOT', label: 'COPILOT & REPORT', icon: FileText, component: CopilotTab },
   ];
 
   const ActiveComponent = tabs.find(t => t.id === activeTab)?.component || UavBlueprintTab;
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-hud relative selection:bg-hud-cyan selection:text-black">
+    <div className="min-h-screen bg-[#090a0f] text-slate-100 flex flex-col font-hud relative selection:bg-blue-600 selection:text-white">
       {/* 1. Military Tactical Header */}
-      <header className="hud-glass border-b border-hud-cyan/30 px-4 py-2 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50">
+      <header className="hud-glass border-b border-slate-700 px-4 py-2 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50">
         {/* Left: Branding & UAV Metadata */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded bg-hud-cyan/10 border border-hud-cyan flex items-center justify-center shadow-hud-cyan">
-            <Plane className="w-5 h-5 text-hud-cyan" />
+          <div className="w-9 h-9 rounded bg-slate-800 border border-slate-600 flex items-center justify-center">
+            <Plane className="w-5 h-5 text-blue-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-display font-black text-sm tracking-wider text-hud-cyan glow-cyan">
+              <h1 className="font-display font-semibold text-sm tracking-wider text-slate-100">
                 AEROTWIN // MALE UAV DIGITAL TWIN
               </h1>
               <span className="text-[10px] font-mono px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-slate-300">
                 MIL-STD-178C
               </span>
             </div>
-            <div className="text-[11px] font-mono text-slate-400">
-              ROTAX 915/916 iS PROGNOSTICS & MISSION RELIABILITY SYSTEM (UAV-01)
+            <div className="text-[11px] font-mono text-slate-500">
+              ROTAX 915/916 iS PROGNOSTICS & MISSION RELIABILITY SYSTEM ({telemetry.mission.uavId})
             </div>
           </div>
         </div>

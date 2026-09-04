@@ -1,8 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Float, Line } from '@react-three/drei';
+import { OrbitControls, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { useTelemetry } from '../context/TelemetryContext';
+import { UavEngineInternals } from './uav/UavEngineInternals';
+import { UavAirframeAndGears } from './uav/UavAirframeAndGears';
+import { HudHologramScene } from './uav/HudHologramScene';
 import { 
   Layers, 
   Maximize2, 
@@ -15,241 +18,53 @@ import {
   Cpu, 
   ShieldAlert,
   ChevronRight,
-  Gauge
+  Gauge,
+  Camera,
+  Eye,
+  Crosshair,
+  Sliders,
+  Radio,
+  Sparkles,
+  Plane
 } from 'lucide-react';
 
-// Color Helper based on Sensor Residual Temperature / Stress
-function getHotspotColor(residual, isFault, baseColor = '#00F0FF') {
-  if (isFault) return '#EF4444'; // Red
-  if (residual > 40) return '#EF4444'; // Critical Red
-  if (residual > 15) return '#F59E0B'; // Amber Warning
-  if (residual < -15) return '#0284C7'; // Blue Cold
-  return baseColor; // Nominal Cyan/Green
-}
-
-// 3D Procedural MALE UAV Airframe Model (Predator / Reaper class layout)
-const UavModel = ({ isExploded, selectedHotspot, onSelectHotspot, telemetry }) => {
-  const groupRef = useRef();
+// Combined Master 3D UAV Airframe + Mechanical Engine Cutaway
+const MasterUav3DModel = ({ 
+  isExploded, 
+  selectedHotspot, 
+  onSelectHotspot, 
+  telemetry, 
+  showHudRings,
+  xrayMode 
+}) => {
+  const masterGroupRef = useRef();
   const propRef = useRef();
 
-  const egtRes = telemetry.residuals.egtResiduals;
-  const activeFault = telemetry.health.activeFault;
-
-  // Animate pusher propeller
-  useFrame((state, delta) => {
-    if (propRef.current) {
-      propRef.current.rotation.z += (telemetry.engine.rpm / 60) * delta * 2.0;
-    }
-  });
-
-  const explodedOffset = isExploded ? 1.4 : 0.0;
-
-  // Colors for Engine Hotspots
-  const cyl1Color = getHotspotColor(egtRes[0], activeFault === 'COOLING_DEGRADATION', '#10B981');
-  const cyl2Color = getHotspotColor(egtRes[1], activeFault === 'COOLING_DEGRADATION' || activeFault === 'BLOW_BY', '#10B981');
-  const cyl3Color = getHotspotColor(egtRes[2], activeFault === 'CYL3_INJECTOR', '#10B981');
-  const cyl4Color = getHotspotColor(egtRes[3], activeFault === 'COOLING_DEGRADATION', '#10B981');
-  const turboColor = getHotspotColor(0, activeFault === 'TURBO_WASTEGATE_STUCK', '#00F0FF');
-  const oilColor = getHotspotColor(telemetry.residuals.oilTempResidual, activeFault === 'OIL_PUMP_CAVITATION' || activeFault === 'BLOW_BY', '#00F0FF');
-
   return (
-    <group ref={groupRef} position={[0, 0, 0]}>
-      {/* 1. Slender Fuselage Mesh */}
-      <mesh position={[0, 0, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.5, 0.28, 6.2, 24]} />
-        <meshStandardMaterial
-          color="#0d1f38"
-          roughness={0.4}
-          metalness={0.8}
-          wireframe={false}
-        />
-      </mesh>
+    <group ref={masterGroupRef} position={[0, 0, 0]}>
+      {/* 1. Translucent Cyan Ghosted Airframe, Wings, Gears & Propeller */}
+      <UavAirframeAndGears
+        isExploded={isExploded}
+        selectedHotspot={selectedHotspot}
+        onSelectHotspot={onSelectHotspot}
+        telemetry={telemetry}
+        propRef={propRef}
+      />
 
-      {/* Wireframe Outline Overlay for Fuselage */}
-      <mesh position={[0, 0, 0]}>
-        <cylinderGeometry args={[0.505, 0.285, 6.22, 16]} />
-        <meshBasicMaterial color="#00F0FF" wireframe opacity={0.18} transparent />
-      </mesh>
+      {/* 2. Solid Gray Precision Internal Engine & Mechanical Assembly */}
+      <UavEngineInternals
+        isExploded={isExploded}
+        selectedHotspot={selectedHotspot}
+        onSelectHotspot={onSelectHotspot}
+        telemetry={telemetry}
+        xrayMode={xrayMode}
+      />
 
-      {/* Nose Radome */}
-      <mesh position={[0, 3.2, 0]}>
-        <sphereGeometry args={[0.49, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial color="#081426" metalness={0.9} roughness={0.3} />
-      </mesh>
-
-      {/* 2. High Aspect Ratio Wings (Left & Right) */}
-      <group position={[0, 0.6, 0]}>
-        {/* Left Main Wing */}
-        <mesh position={[-4.2 - explodedOffset * 0.8, 0, 0]} rotation={[0, 0, 0.03]}>
-          <boxGeometry args={[7.8, 0.08, 0.95]} />
-          <meshStandardMaterial color="#0b1d36" metalness={0.85} roughness={0.35} />
-        </mesh>
-        <mesh position={[-4.2 - explodedOffset * 0.8, 0, 0]} rotation={[0, 0, 0.03]}>
-          <boxGeometry args={[7.82, 0.082, 0.96]} />
-          <meshBasicMaterial color="#00F0FF" wireframe opacity={0.15} transparent />
-        </mesh>
-
-        {/* Right Main Wing */}
-        <mesh position={[4.2 + explodedOffset * 0.8, 0, 0]} rotation={[0, 0, -0.03]}>
-          <boxGeometry args={[7.8, 0.08, 0.95]} />
-          <meshStandardMaterial color="#0b1d36" metalness={0.85} roughness={0.35} />
-        </mesh>
-        <mesh position={[4.2 + explodedOffset * 0.8, 0, 0]} rotation={[0, 0, -0.03]}>
-          <boxGeometry args={[7.82, 0.082, 0.96]} />
-          <meshBasicMaterial color="#00F0FF" wireframe opacity={0.15} transparent />
-        </mesh>
-      </group>
-
-      {/* 3. Inverted V-Tail Empennage */}
-      <group position={[0, -2.9, 0]}>
-        {/* Left V-Stab */}
-        <mesh position={[-0.85 - explodedOffset * 0.4, -0.2, 0.5]} rotation={[0.45, 0, -0.55]}>
-          <boxGeometry args={[0.06, 1.8, 0.65]} />
-          <meshStandardMaterial color="#0a1a30" metalness={0.8} />
-        </mesh>
-        {/* Right V-Stab */}
-        <mesh position={[0.85 + explodedOffset * 0.4, -0.2, 0.5]} rotation={[0.45, 0, 0.55]}>
-          <boxGeometry args={[0.06, 1.8, 0.65]} />
-          <meshStandardMaterial color="#0a1a30" metalness={0.8} />
-        </mesh>
-      </group>
-
-      {/* 4. Rear Engine Bay Cowling & Rotax 915 iS Engine Core */}
-      <group position={[0, -1.8 - explodedOffset * 0.6, 0.15 + explodedOffset * 0.5]}>
-        {/* Engine Bay Outer Casing (Semi-Transparent in Exploded View) */}
-        <mesh
-          position={[0, 0, 0]}
-          onClick={(e) => { e.stopPropagation(); onSelectHotspot('ENGINE_BLOCK'); }}
-        >
-          <boxGeometry args={[0.9, 1.4, 0.8]} />
-          <meshStandardMaterial
-            color={selectedHotspot === 'ENGINE_BLOCK' ? '#00F0FF' : '#1e3a5f'}
-            metalness={0.9}
-            roughness={0.2}
-            transparent
-            opacity={isExploded ? 0.35 : 0.9}
-            wireframe={isExploded}
-          />
-        </mesh>
-
-        {/* Rotax 915 Boxer Crankcase Block */}
-        <mesh
-          position={[0, -0.1, 0]}
-          onClick={(e) => { e.stopPropagation(); onSelectHotspot('ENGINE_BLOCK'); }}
-        >
-          <boxGeometry args={[0.65, 0.85, 0.55]} />
-          <meshStandardMaterial color="#334155" metalness={0.95} roughness={0.2} />
-        </mesh>
-
-        {/* Cylinder 1 (Left Forward) */}
-        <group position={[-0.45 - explodedOffset * 0.4, 0.18, 0]}>
-          <mesh onClick={(e) => { e.stopPropagation(); onSelectHotspot('CYLINDER_1'); }}>
-            <cylinderGeometry args={[0.14, 0.14, 0.38, 16]} />
-            <meshStandardMaterial color={cyl1Color} emissive={cyl1Color} emissiveIntensity={0.35} />
-          </mesh>
-        </group>
-
-        {/* Cylinder 2 (Right Forward) */}
-        <group position={[0.45 + explodedOffset * 0.4, 0.18, 0]}>
-          <mesh onClick={(e) => { e.stopPropagation(); onSelectHotspot('CYLINDER_2'); }}>
-            <cylinderGeometry args={[0.14, 0.14, 0.38, 16]} />
-            <meshStandardMaterial color={cyl2Color} emissive={cyl2Color} emissiveIntensity={0.35} />
-          </mesh>
-        </group>
-
-        {/* Cylinder 3 (Left Aft) - Highlights with RED if Fault Active */}
-        <group position={[-0.45 - explodedOffset * 0.4, -0.22, 0]}>
-          <mesh onClick={(e) => { e.stopPropagation(); onSelectHotspot('CYLINDER_3'); }}>
-            <cylinderGeometry args={[0.14, 0.14, 0.38, 16]} />
-            <meshStandardMaterial
-              color={cyl3Color}
-              emissive={cyl3Color}
-              emissiveIntensity={activeFault === 'CYL3_INJECTOR' ? 0.8 : 0.35}
-            />
-          </mesh>
-        </group>
-
-        {/* Cylinder 4 (Right Aft) */}
-        <group position={[0.45 + explodedOffset * 0.4, -0.22, 0]}>
-          <mesh onClick={(e) => { e.stopPropagation(); onSelectHotspot('CYLINDER_4'); }}>
-            <cylinderGeometry args={[0.14, 0.14, 0.38, 16]} />
-            <meshStandardMaterial color={cyl4Color} emissive={cyl4Color} emissiveIntensity={0.35} />
-          </mesh>
-        </group>
-
-        {/* Turbocharger & Wastegate Unit */}
-        <group position={[0, -0.6 - explodedOffset * 0.5, 0.3 + explodedOffset * 0.4]}>
-          <mesh onClick={(e) => { e.stopPropagation(); onSelectHotspot('TURBOCHARGER'); }}>
-            <torusGeometry args={[0.16, 0.07, 16, 24]} />
-            <meshStandardMaterial
-              color={turboColor}
-              emissive={turboColor}
-              emissiveIntensity={activeFault === 'TURBO_WASTEGATE_STUCK' ? 0.8 : 0.3}
-            />
-          </mesh>
-        </group>
-
-        {/* Oil Radiator & Filter Housing */}
-        <group position={[0, 0.5 + explodedOffset * 0.4, -0.3 - explodedOffset * 0.3]}>
-          <mesh onClick={(e) => { e.stopPropagation(); onSelectHotspot('OIL_SYSTEM'); }}>
-            <boxGeometry args={[0.42, 0.22, 0.16]} />
-            <meshStandardMaterial
-              color={oilColor}
-              emissive={oilColor}
-              emissiveIntensity={activeFault === 'OIL_PUMP_CAVITATION' ? 0.8 : 0.3}
-            />
-          </mesh>
-        </group>
-
-        {/* Dual Fuel Pumps Unit */}
-        <group position={[0.25 + explodedOffset * 0.3, 0.4, 0.25]}>
-          <mesh onClick={(e) => { e.stopPropagation(); onSelectHotspot('FUEL_SYSTEM'); }}>
-            <cylinderGeometry args={[0.06, 0.06, 0.25, 12]} />
-            <meshStandardMaterial color="#00F0FF" emissive="#00F0FF" emissiveIntensity={0.3} />
-          </mesh>
-        </group>
-      </group>
-
-      {/* 5. Rear Pusher 3-Blade Propeller */}
-      <group position={[0, -3.2, 0]} ref={propRef}>
-        <mesh position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.12, 0.08, 0.2, 16]} />
-          <meshStandardMaterial color="#111827" metalness={0.9} />
-        </mesh>
-        {/* Prop Blade 1 */}
-        <mesh position={[0, 0.75, 0]}>
-          <boxGeometry args={[0.07, 1.4, 0.02]} />
-          <meshStandardMaterial color="#38bdf8" roughness={0.2} metalness={0.9} />
-        </mesh>
-        {/* Prop Blade 2 */}
-        <mesh position={[-0.65, -0.38, 0]} rotation={[0, 0, (2 * Math.PI) / 3]}>
-          <boxGeometry args={[0.07, 1.4, 0.02]} />
-          <meshStandardMaterial color="#38bdf8" roughness={0.2} metalness={0.9} />
-        </mesh>
-        {/* Prop Blade 3 */}
-        <mesh position={[0.65, -0.38, 0]} rotation={[0, 0, -(2 * Math.PI) / 3]}>
-          <boxGeometry args={[0.07, 1.4, 0.02]} />
-          <meshStandardMaterial color="#38bdf8" roughness={0.2} metalness={0.9} />
-        </mesh>
-      </group>
-    </group>
-  );
-};
-
-// Tactical CAD Grid Floor & Axis Lines
-const CadGrid = () => {
-  return (
-    <group position={[0, -1.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <gridHelper args={[24, 48, '#00F0FF', '#0F2744']} rotation={[Math.PI / 2, 0, 0]} />
-      {/* Concentric Calibration Rings */}
-      <mesh position={[0, 0, -0.01]}>
-        <ringGeometry args={[3.8, 3.84, 64]} />
-        <meshBasicMaterial color="#00F0FF" opacity={0.2} transparent side={THREE.DoubleSide} />
-      </mesh>
-      <mesh position={[0, 0, -0.01]}>
-        <ringGeometry args={[7.8, 7.84, 64]} />
-        <meshBasicMaterial color="#00F0FF" opacity={0.15} transparent side={THREE.DoubleSide} />
-      </mesh>
+      {/* 3. 3D Concentric Holographic Calibration Rings & Reticles */}
+      <HudHologramScene
+        showHudRings={showHudRings}
+        activeFault={telemetry?.health?.activeFault || 'NONE'}
+      />
     </group>
   );
 };
@@ -257,26 +72,56 @@ const CadGrid = () => {
 export const UavBlueprintTab = () => {
   const { telemetry, injectFault, clearFault } = useTelemetry();
   const [isExploded, setIsExploded] = useState(false);
-  const [cameraView, setCameraView] = useState('ISOMETRIC'); // 'ISOMETRIC' | 'TOP_DOWN' | 'ELEVATION' | 'ENGINE_ZOOM'
+  const [showHudRings, setShowHudRings] = useState(true);
+  const [xrayMode, setXrayMode] = useState('GHOST'); // 'GHOST' | 'WIREFRAME' | 'SOLID'
+  const [cameraView, setCameraView] = useState('HERO_HEADON'); // 'HERO_HEADON' | 'FRONT_VIEW' | 'BACK_VIEW' | 'XRAY_CUTAWAY' | 'ENGINE_MACRO' | 'LANDING_GEAR' | 'TOP_CAD' | 'SIDE_ELEV'
   const [selectedHotspot, setSelectedHotspot] = useState('CYLINDER_3');
+  const [fftData, setFftData] = useState(Array.from({ length: 24 }, () => Math.random() * 40 + 10));
   const controlsRef = useRef();
 
+  // Dynamic live FFT vibration spectrum ticker for left HUD panel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFftData(prev => prev.map((val, i) => {
+        const base = (telemetry.engine.rpm / 5000) * 35;
+        const noise = (Math.sin(Date.now() * 0.005 + i) + 1) * 15;
+        const faultSpike = (telemetry.health.status === 'CRITICAL' && (i === 7 || i === 14)) ? 45 : 0;
+        return Math.min(95, Math.max(8, base + noise + faultSpike));
+      }));
+    }, 120);
+    return () => clearInterval(interval);
+  }, [telemetry.engine.rpm, telemetry.health.status]);
+
+  // Camera Presets handler (Default matches image_1.png dynamic low-angle head-on perspective)
   const handleResetCamera = (viewType) => {
     setCameraView(viewType);
     if (!controlsRef.current) return;
 
-    if (viewType === 'ISOMETRIC') {
-      controlsRef.current.object.position.set(0, -6, 7);
+    if (viewType === 'HERO_HEADON') {
+      // Direct match to image_1.png: low-angle head-on looking up at the front propeller & engine bay
+      controlsRef.current.object.position.set(0.15, -4.6, 0.45);
+      controlsRef.current.target.set(0, -0.6, -0.1);
+    } else if (viewType === 'FRONT_VIEW') {
+      controlsRef.current.object.position.set(0, -9, 0.15);
       controlsRef.current.target.set(0, 0, 0);
-    } else if (viewType === 'TOP_DOWN') {
-      controlsRef.current.object.position.set(0, 0.1, 10);
+    } else if (viewType === 'BACK_VIEW') {
+      controlsRef.current.object.position.set(0, 9, 0.15);
       controlsRef.current.target.set(0, 0, 0);
-    } else if (viewType === 'ELEVATION') {
-      controlsRef.current.object.position.set(10, 0, 0);
+    } else if (viewType === 'XRAY_CUTAWAY') {
+      controlsRef.current.object.position.set(1.4, -3.2, 1.6);
+      controlsRef.current.target.set(0, 0.2, 0.1);
+    } else if (viewType === 'ENGINE_MACRO') {
+      controlsRef.current.object.position.set(0.1, -1.8, 1.3);
+      controlsRef.current.target.set(0, 0.4, 0.1);
+    } else if (viewType === 'LANDING_GEAR') {
+      controlsRef.current.object.position.set(0.1, -3.8, -0.7);
+      controlsRef.current.target.set(0, -2.1, -0.6);
+    } else if (viewType === 'TOP_CAD') {
+      controlsRef.current.object.position.set(0, 0.1, 9.2);
       controlsRef.current.target.set(0, 0, 0);
-    } else if (viewType === 'ENGINE_ZOOM') {
-      controlsRef.current.object.position.set(0, -3.5, 2.5);
-      controlsRef.current.target.set(0, -1.8, 0);
+    } else if (viewType === 'SIDE_ELEV') {
+      controlsRef.current.object.position.set(9.0, 0, 0);
+      controlsRef.current.target.set(0, 0, 0);
     }
     controlsRef.current.update();
   };
@@ -285,8 +130,8 @@ export const UavBlueprintTab = () => {
   const hotspotData = {
     ENGINE_BLOCK: {
       name: 'Rotax 915 iS Engine Block (4-Cylinder Boxer)',
-      subsystem: 'Powertrain Core',
-      spec: '1,414 cc, 4-stroke turbocharged, liquid/air cooled, dual FADEC ECU',
+      subsystem: 'Powertrain Core & Crankcase',
+      spec: '1,414 cc, 4-stroke boxer, liquid/air cooled, dual FADEC ECU, 141 HP Max Continuous',
       telemetryKey: `RPM: ${telemetry.engine.rpm} | Throttle: ${telemetry.engine.throttlePct}% | MAP: ${telemetry.engine.mapBar} bar`,
       residual: `Vibration: ${telemetry.engine.vibrationGrms} g-RMS (Δ ${telemetry.residuals.vibrationResidual > 0 ? '+' : ''}${telemetry.residuals.vibrationResidual})`,
       status: telemetry.health.status,
@@ -294,8 +139,8 @@ export const UavBlueprintTab = () => {
     },
     CYLINDER_1: {
       name: 'Cylinder 1 Combustion Chamber (Left Forward)',
-      subsystem: 'Combustion Chamber',
-      spec: 'Bore 84mm, Stroke 61mm, NiCaSil Plated Cylinder',
+      subsystem: 'Combustion Chamber & Piston',
+      spec: 'Bore 84mm, Stroke 61mm, NiCaSil Plated Cylinder Sleeve',
       telemetryKey: `EGT: ${telemetry.engine.egt[0]}°C | CHT: ${telemetry.engine.cht[0]}°C`,
       residual: `EGT Residual: ${telemetry.residuals.egtResiduals[0] > 0 ? '+' : ''}${telemetry.residuals.egtResiduals[0]}°C | CHT Residual: ${telemetry.residuals.chtResiduals[0] > 0 ? '+' : ''}${telemetry.residuals.chtResiduals[0]}°C`,
       status: Math.abs(telemetry.residuals.egtResiduals[0]) > 40 ? 'CRITICAL' : 'NOMINAL',
@@ -303,8 +148,8 @@ export const UavBlueprintTab = () => {
     },
     CYLINDER_2: {
       name: 'Cylinder 2 Combustion Chamber (Right Forward)',
-      subsystem: 'Combustion Chamber',
-      spec: 'Bore 84mm, Stroke 61mm, NiCaSil Plated Cylinder',
+      subsystem: 'Combustion Chamber & Piston',
+      spec: 'Bore 84mm, Stroke 61mm, NiCaSil Plated Cylinder Sleeve',
       telemetryKey: `EGT: ${telemetry.engine.egt[1]}°C | CHT: ${telemetry.engine.cht[1]}°C`,
       residual: `EGT Residual: ${telemetry.residuals.egtResiduals[1] > 0 ? '+' : ''}${telemetry.residuals.egtResiduals[1]}°C | CHT Residual: ${telemetry.residuals.chtResiduals[1] > 0 ? '+' : ''}${telemetry.residuals.chtResiduals[1]}°C`,
       status: Math.abs(telemetry.residuals.egtResiduals[1]) > 40 ? 'CRITICAL' : 'NOMINAL',
@@ -321,8 +166,8 @@ export const UavBlueprintTab = () => {
     },
     CYLINDER_4: {
       name: 'Cylinder 4 Combustion Chamber (Right Aft)',
-      subsystem: 'Combustion Chamber',
-      spec: 'Bore 84mm, Stroke 61mm, NiCaSil Plated Cylinder',
+      subsystem: 'Combustion Chamber & Piston',
+      spec: 'Bore 84mm, Stroke 61mm, NiCaSil Plated Cylinder Sleeve',
       telemetryKey: `EGT: ${telemetry.engine.egt[3]}°C | CHT: ${telemetry.engine.cht[3]}°C`,
       residual: `EGT Residual: ${telemetry.residuals.egtResiduals[3] > 0 ? '+' : ''}${telemetry.residuals.egtResiduals[3]}°C | CHT Residual: ${telemetry.residuals.chtResiduals[3] > 0 ? '+' : ''}${telemetry.residuals.chtResiduals[3]}°C`,
       status: Math.abs(telemetry.residuals.egtResiduals[3]) > 40 ? 'CRITICAL' : 'NOMINAL',
@@ -330,16 +175,16 @@ export const UavBlueprintTab = () => {
     },
     TURBOCHARGER: {
       name: 'Turbocharger & Electronic Wastegate Actuator',
-      subsystem: 'Induction & Boost',
-      spec: 'Variable boost ratio up to 1.85 bar absolute at 15,000 ft',
+      subsystem: 'Induction & Boost Turbine',
+      spec: 'Variable boost ratio up to 1.85 bar absolute at 15,000 ft, Inconel turbine',
       telemetryKey: `MAP: ${telemetry.engine.mapBar} bar | Wastegate Duty: ${telemetry.engine.wastegateDutyPct}%`,
       residual: `MAP Residual: ${telemetry.residuals.mapResidual > 0 ? '+' : ''}${telemetry.residuals.mapResidual} bar`,
       status: telemetry.health.activeFault === 'TURBO_WASTEGATE_STUCK' ? 'CRITICAL' : 'NOMINAL',
       desc: 'Exhaust-driven turbocharger maintains sea-level manifold pressure up to critical flight ceiling. Regulated by digital wastegate servo.'
     },
     OIL_SYSTEM: {
-      name: 'Lubrication System & Oil Cooler',
-      subsystem: 'Lubrication & Radiator',
+      name: 'Lubrication System, Oil Sump & Radiator',
+      subsystem: 'Lubrication & Thermal Management',
       spec: 'Dry sump lubrication, integrated mechanical oil pump, thermostatically controlled cooler',
       telemetryKey: `Oil Press: ${telemetry.engine.oilPressBar} bar | Oil Temp: ${telemetry.engine.oilTempC}°C`,
       residual: `Press Residual: ${telemetry.residuals.oilPressResidual} bar | Temp Residual: ${telemetry.residuals.oilTempResidual > 0 ? '+' : ''}${telemetry.residuals.oilTempResidual}°C`,
@@ -347,224 +192,385 @@ export const UavBlueprintTab = () => {
       desc: 'Maintains hydrodynamic fluid wedge across connecting rod journals. Pressure collapse triggers bearing friction and catastrophic seizure.'
     },
     FUEL_SYSTEM: {
-      name: 'Redundant Dual Electric Fuel Pumps',
-      subsystem: 'Fuel Delivery',
-      spec: 'Main & Aux High-Pressure Pumps, 3.0 bar regulated rail pressure',
+      name: 'Dual High-Pressure Fuel Rail & Injector Loom',
+      subsystem: 'Fuel Injection Delivery',
+      spec: 'Main & Aux High-Pressure Pumps, 3.0 bar regulated rail pressure, dual return lines',
       telemetryKey: `Fuel Flow: ${telemetry.engine.fuelFlowLph} L/h | Rail Pressure: ${telemetry.engine.fuelPressureBar} bar | Lambda: ${telemetry.engine.lambda}`,
       residual: 'Flow Residual: ±0.4 L/h (Nominal)',
       status: 'NOMINAL',
-      desc: 'Dual electric fuel delivery system supplying filtered Avgas 100LL / Mogas 95 to multi-point electronic fuel injection rails.'
+      desc: 'Dual electric fuel delivery system supplying filtered fuel to multi-point electronic fuel injection rails.'
+    },
+    AVIONICS_ECU: {
+      name: 'Redundant Dual FADEC ECU & Flight Avionics Unit',
+      subsystem: 'Command & Control Electronics',
+      spec: 'Lane A/B Dual Redundant Microcontrollers, MIL-STD-178C Level A, Optocoupled CAN 2.0B',
+      telemetryKey: `Lane A: ACTIVE | Lane B: STANDBY SYNC | CPU Load: 24% | Bus Errors: 0`,
+      residual: 'Latency: 1.2 ms | Sync Drift: 0.00 μs',
+      status: 'NOMINAL',
+      desc: 'Fully autonomous dual-channel FADEC engine management unit. Executes ignition timing, closed-loop lambda control, and prognostics diagnostics.'
     }
   };
 
   const activeHotspot = hotspotData[selectedHotspot] || hotspotData.CYLINDER_3;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-140px)] w-full">
-      {/* Left / Main: 3D CAD Blueprint Canvas */}
-      <div className="flex-1 relative hud-glass rounded-lg overflow-hidden flex flex-col">
-        {/* HUD Overlay Bar atop 3D Canvas */}
-        <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-start justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 max-w-full">
-            <div className="px-3 py-1 bg-black/70 border border-hud-cyan/40 rounded text-xs font-mono text-hud-cyan flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-hud-cyan animate-pulse"></span>
-              <span>UAV-01 3D DIGITAL TWIN CAD WORKSPACE</span>
+    <div className="flex flex-col xl:flex-row gap-4 h-[calc(100vh-130px)] w-full">
+      {/* =========================================================================
+          LEFT HUD INTERFACE PANEL (Stylized Data Readouts & Graphs matching image_1.png)
+         ========================================================================= */}
+      <div className="w-full xl:w-96 flex flex-col gap-3 overflow-y-auto pr-1">
+        {/* Panel Header */}
+        <div className="hud-glass p-3 rounded-lg border border-hud-cyan/40 bg-slate-950/80">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Crosshair className="w-4 h-4 text-hud-cyan animate-pulse" />
+              <span className="text-xs font-mono font-bold tracking-wider text-hud-cyan glow-cyan">
+                HUD DIAGNOSTICS // CAD X-RAY
+              </span>
             </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-hud-cyan/10 border border-hud-cyan/30 text-hud-cyan">
+              MIL-SPEC 3D
+            </span>
+          </div>
+          <div className="text-[11px] font-mono text-slate-400 mt-1">
+            UAV-01 DIGITAL TWIN STRUCTURAL & MECHANICAL TELEMETRY
+          </div>
+        </div>
 
-            <div className="px-3 py-1 bg-black/70 border border-slate-700 rounded text-xs font-mono text-slate-300 whitespace-nowrap">
-              ENGINE: ROTAX 915 iS (S/N: RTX-915-0842)
+        {/* Live Gauges & Subsystem Telemetry Card */}
+        <div className="hud-glass p-3 rounded-lg border border-slate-800 bg-slate-950/60 flex flex-col gap-3">
+          <div className="flex items-center justify-between text-xs font-mono">
+            <span className="text-slate-400 flex items-center gap-1.5">
+              <Gauge className="w-3.5 h-3.5 text-hud-cyan" />
+              POWERTRAIN DYNAMICS
+            </span>
+            <span className="text-emerald-400 font-bold">{telemetry.engine.rpm} RPM</span>
+          </div>
+
+          {/* 4-Cylinder EGT Heat Balance Gradient Bars */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+              <span>CYLINDER EGT MATRIX (°C)</span>
+              <span className="text-hud-cyan text-[10px]">Δ SPREAD: {(Math.max(...telemetry.engine.egt) - Math.min(...telemetry.engine.egt)).toFixed(2)}°C</span>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {telemetry.engine.egt.map((temp, idx) => {
+                const isOverheat = temp > 900;
+                const isSelected = selectedHotspot === `CYLINDER_${idx + 1}`;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedHotspot(`CYLINDER_${idx + 1}`)}
+                    className={`p-1.5 rounded flex flex-col items-center border transition-all ${
+                      isSelected 
+                        ? 'border-hud-cyan bg-hud-cyan/20 shadow-hud-cyan' 
+                        : isOverheat 
+                          ? 'border-red-500/50 bg-red-950/30' 
+                          : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
+                    }`}
+                  >
+                    <span className="text-[10px] font-mono text-slate-400">CYL {idx + 1}</span>
+                    <span className={`w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-center text-xs font-mono font-bold ${isOverheat ? 'text-red-400 animate-pulse' : 'text-slate-200'}`}>
+                      {temp.toFixed(1)}°
+                    </span>
+                    <div className="w-full bg-slate-800 h-1 rounded-full mt-1 overflow-hidden">
+                      <div 
+                        className={`h-full ${isOverheat ? 'bg-red-500' : 'bg-hud-cyan'}`} 
+                        style={{ width: `${Math.min(100, (temp / 1000) * 100)}%` }}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* FFT Vibration Frequency Waveform (Stylized small graph from image_1.png) */}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+              <span className="flex items-center gap-1">
+                <Activity className="w-3 h-3 text-hud-cyan" />
+                VIBRATION FFT HARMONICS
+              </span>
+              <span className="text-hud-cyan text-[10px]">{telemetry.engine.vibrationGrms} g-RMS</span>
+            </div>
+            <div className="h-14 bg-slate-950 border border-slate-800/80 rounded p-1.5 flex items-end justify-between gap-0.5">
+              {fftData.map((val, idx) => (
+                <div
+                  key={idx}
+                  className={`w-full rounded-t transition-all duration-100 ${
+                    val > 70 ? 'bg-red-600' : 'bg-sky-400'
+                  }`}
+                  style={{ height: `${val}%` }}
+                />
+              ))}
+            </div>
+            <div className="flex justify-between text-[9px] font-mono text-slate-500">
+              <span>0 Hz</span>
+              <span>1X (80Hz)</span>
+              <span>2X (160Hz)</span>
+              <span>HIGH (1kHz)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Selected Component Deep Dive Inspector */}
+        <div className="hud-glass p-3 rounded-lg border border-hud-cyan/30 bg-slate-950/70 flex flex-col gap-2 flex-1">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="flex items-center gap-1.5 text-xs font-mono text-hud-cyan font-bold">
+              <Cpu className="w-3.5 h-3.5" />
+              <span>INSPECTOR: {selectedHotspot}</span>
+            </div>
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
+              activeHotspot.status === 'CRITICAL' 
+                ? 'bg-red-500/20 text-red-400 border border-red-500/50 animate-pulse' 
+                : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+            }`}>
+              {activeHotspot.status}
+            </span>
+          </div>
+
+          <div className="text-xs font-semibold text-slate-200">
+            {activeHotspot.name}
+          </div>
+          <div className="text-[11px] font-mono text-slate-400">
+            <span className="text-hud-cyan">SUBSYSTEM:</span> {activeHotspot.subsystem}
+          </div>
+          <div className="text-[10px] font-mono text-slate-400 bg-slate-900/60 p-2 rounded border border-slate-800">
+            {activeHotspot.spec}
+          </div>
+
+          {/* Real-time Telemetry & Residual Delta */}
+          <div className="bg-black/50 p-2 rounded border border-hud-cyan/20 flex flex-col gap-1 text-[11px] font-mono">
+            <div className="text-slate-300">
+              <span className="text-hud-cyan">METRICS:</span> {activeHotspot.telemetryKey}
+            </div>
+            <div className="text-amber-400">
+              <span className="text-slate-400">RESIDUAL:</span> {activeHotspot.residual}
+            </div>
+          </div>
+
+          <div className="text-[11px] font-mono text-slate-300 leading-relaxed bg-slate-950/40 p-2 rounded border border-slate-800/80">
+            {activeHotspot.desc}
+          </div>
+
+          {/* Quick Subsystem Selector Buttons */}
+          <div className="mt-auto pt-2 border-t border-slate-800/80">
+            <div className="text-[10px] font-mono text-slate-500 mb-1.5 uppercase">Select Subsystem To Inspect:</div>
+            <div className="grid grid-cols-3 gap-1 text-[10px] font-mono">
+              {[
+                { id: 'CYLINDER_3', label: 'Cyl 3 Port' },
+                { id: 'TURBOCHARGER', label: 'Turbo Unit' },
+                { id: 'ENGINE_BLOCK', label: 'Crankcase' },
+                { id: 'OIL_SYSTEM', label: 'Oil Sump' },
+                { id: 'FUEL_SYSTEM', label: 'Fuel Rails' },
+                { id: 'AVIONICS_ECU', label: 'ECU Avionics' },
+              ].map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setSelectedHotspot(item.id)}
+                  className={`px-1.5 py-1 rounded text-center truncate transition-colors ${
+                    selectedHotspot === item.id 
+                      ? 'bg-hud-cyan text-black font-bold shadow-hud-cyan' 
+                      : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-hud-cyan/40'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          RIGHT / MAIN: MASTER 3D TECHNICAL BLUEPRINT CANVAS (Matching image_1.png)
+         ========================================================================= */}
+      <div className="flex-1 relative hud-glass rounded-lg overflow-hidden flex flex-col border border-hud-cyan/40 shadow-2xl">
+        {/* Top Control HUD Toolbar */}
+        <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+          {/* Left Title & Status */}
+          <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
+            <div className="px-3 py-1 bg-black/80 border border-hud-cyan/50 rounded-md text-xs font-mono text-hud-cyan flex items-center gap-2 shadow-lg backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-hud-cyan animate-pulse"></span>
+              <span className="font-bold">MALE UAV 3D DIGITAL TWIN CAD X-RAY</span>
             </div>
 
             <button
               onClick={() => setIsExploded(!isExploded)}
-              className={`px-3 py-1 rounded text-xs font-mono border transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-md text-xs font-mono border transition-all flex items-center gap-1.5 backdrop-blur-md ${
                 isExploded
                   ? 'bg-hud-cyan text-black font-bold border-hud-cyan shadow-hud-cyan'
-                  : 'bg-black/70 text-hud-cyan border-hud-cyan/40 hover:bg-hud-cyan/20'
+                  : 'bg-black/80 text-hud-cyan border-hud-cyan/40 hover:bg-hud-cyan/20'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
               {isExploded ? 'EXPLODED VIEW: ON' : 'EXPLODED VIEW: OFF'}
             </button>
-          </div>
 
-          {/* Camera Preset Toolbar */}
-          <div className="flex items-center gap-1.5 bg-black/80 border border-slate-700/80 p-1 rounded-md flex-wrap justify-end">
             <button
-              onClick={() => handleResetCamera('ISOMETRIC')}
-              className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
-                cameraView === 'ISOMETRIC' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              onClick={() => setShowHudRings(!showHudRings)}
+              className={`px-3 py-1 rounded-md text-xs font-mono border transition-all flex items-center gap-1.5 backdrop-blur-md ${
+                showHudRings
+                  ? 'bg-hud-cyan/20 text-hud-cyan border-hud-cyan/60'
+                  : 'bg-black/80 text-slate-400 border-slate-700'
               }`}
             >
-              ISO 3D
+              <Crosshair className="w-3.5 h-3.5" />
+              HUD RINGS: {showHudRings ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
+          {/* Camera Preset Toolbar (Defaulting to Hero Head-On matching image_1.png) */}
+          <div className="flex items-center gap-1 bg-black/85 border border-slate-700/80 p-1 rounded-md pointer-events-auto backdrop-blur-md flex-wrap justify-end">
+            <button
+              onClick={() => handleResetCamera('HERO_HEADON')}
+              title="Low-Angle Head-On Perspective (image_1.png)"
+              className={`px-2.5 py-1 text-xs font-mono rounded flex items-center gap-1 transition-all ${
+                cameraView === 'HERO_HEADON'
+                  ? 'bg-hud-cyan text-black font-bold shadow-hud-cyan'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Camera className="w-3 h-3" />
+              HERO 3D (IMAGE_1)
             </button>
             <button
-              onClick={() => handleResetCamera('TOP_DOWN')}
-              className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
-                cameraView === 'TOP_DOWN' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              onClick={() => handleResetCamera('FRONT_VIEW')}
+              className={`px-2 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'FRONT_VIEW' ? 'bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              FRONT VIEW
+            </button>
+            <button
+              onClick={() => handleResetCamera('BACK_VIEW')}
+              className={`px-2 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'BACK_VIEW' ? 'bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              BACK VIEW
+            </button>
+            <button
+              onClick={() => handleResetCamera('XRAY_CUTAWAY')}
+              className={`px-2 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'XRAY_CUTAWAY' ? 'bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              X-RAY ISO
+            </button>
+            <button
+              onClick={() => handleResetCamera('ENGINE_MACRO')}
+              className={`px-2 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'ENGINE_MACRO' ? 'bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              ENGINE BAY
+            </button>
+            <button
+              onClick={() => handleResetCamera('LANDING_GEAR')}
+              className={`px-2 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'LANDING_GEAR' ? 'bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              NOSE GEAR
+            </button>
+            <button
+              onClick={() => handleResetCamera('TOP_CAD')}
+              className={`px-2 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'TOP_CAD' ? 'bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               TOP CAD
             </button>
             <button
-              onClick={() => handleResetCamera('ELEVATION')}
-              className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
-                cameraView === 'ELEVATION' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
+              onClick={() => handleResetCamera('SIDE_ELEV')}
+              className={`px-2 py-1 text-xs font-mono rounded transition-colors ${
+                cameraView === 'SIDE_ELEV' ? 'bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               SIDE ELEV
             </button>
-            <button
-              onClick={() => handleResetCamera('ENGINE_ZOOM')}
-              className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
-                cameraView === 'ENGINE_ZOOM' ? 'bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/50' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              ENGINE BAY
-            </button>
           </div>
         </div>
 
-        {/* 3D R3F Canvas */}
-        <div className="w-full h-full cursor-grab active:cursor-grabbing">
+        {/* 3D WebGL Canvas */}
+        <div className="w-full h-full cursor-grab active:cursor-grabbing bg-[#020617] relative">
           <Canvas
-            camera={{ position: [0, -6, 7], fov: 45 }}
-            gl={{ antialias: true, alpha: true }}
+            camera={{ 
+              position: [0.15, -4.6, 0.45], 
+              fov: 42,
+              near: 0.1,
+              far: 100
+            }}
+            gl={{ 
+              antialias: true, 
+              alpha: true,
+              powerPreference: 'high-performance'
+            }}
           >
-            <color attach="background" args={['#030712']} />
-            <ambientLight intensity={0.65} />
-            <directionalLight position={[10, 10, 10]} intensity={1.2} />
-            <pointLight position={[-10, -10, -10]} intensity={0.5} color="#00F0FF" />
-            <pointLight position={[0, -2, 2]} intensity={1.5} color={telemetry.health.status === 'CRITICAL' ? '#EF4444' : '#00F0FF'} />
+            {/* Holographic Dark Navy Scene Background */}
+            <color attach="background" args={['#020617']} />
+            <fog attach="fog" args={['#020617', 12, 35]} />
 
-            <CadGrid />
+            {/* Studio Technical Lighting Setup */}
+            <ambientLight intensity={0.8} />
+            {/* Cool Cyan Rim Light */}
+            <directionalLight position={[-8, -8, 8]} intensity={1.2} color="#cbd5e1" />
+            {/* Key Neutral White Light for Metallic Engine Parts */}
+            <directionalLight position={[6, -6, 10]} intensity={1.5} color="#f8fafc" />
+            {/* Soft Fill Light from Below/Aft */}
+            <directionalLight position={[0, 8, 4]} intensity={0.45} color="#94a3b8" />
+            
+            {/* Localized Component Glow PointLight */}
+            <pointLight 
+              position={[0, 0.4, 0.5]} 
+              intensity={2.2} 
+              color={telemetry.health.status === 'CRITICAL' ? '#dc2626' : '#64748b'}
+              distance={6}
+            />
 
-            <Float speed={1.2} rotationIntensity={0.15} floatIntensity={0.2}>
-              <UavModel
+            {/* Front Propeller Ground Target PointLight */}
+            <pointLight 
+              position={[0, -2.8, -0.8]} 
+              intensity={1.8} 
+              color="#64748b" 
+              distance={4}
+            />
+
+            {/* Float wrapper for subtle alive breathing motion */}
+            <Float speed={1.0} rotationIntensity={0.06} floatIntensity={0.08}>
+              <MasterUav3DModel
                 isExploded={isExploded}
                 selectedHotspot={selectedHotspot}
                 onSelectHotspot={setSelectedHotspot}
                 telemetry={telemetry}
+                showHudRings={showHudRings}
+                xrayMode={xrayMode}
               />
             </Float>
 
+            {/* Orbit Controls with Damping */}
             <OrbitControls
               ref={controlsRef}
-              enableDamping
-              dampingFactor={0.08}
-              minDistance={2}
-              maxDistance={22}
+              target={[0, -0.6, -0.1]}
+              enableDamping={true}
+              dampingFactor={0.05}
+              maxDistance={25}
+              minDistance={1.2}
+              maxPolarAngle={Math.PI / 2 + 0.15} // Prevent going below floor grid
             />
           </Canvas>
-        </div>
 
-        {/* Hotspot Quick Click Bar at Bottom of 3D Canvas */}
-        <div className="absolute bottom-3 left-3 right-3 z-10 flex flex-wrap items-center justify-center gap-2 bg-black/85 border border-hud-cyan/30 p-2 rounded-lg backdrop-blur-md">
-          <span className="text-xs font-mono text-hud-cyan flex items-center gap-1 mr-2">
-            <Zap className="w-3.5 h-3.5" /> SELECT SUBSYSTEM:
-          </span>
-          {[
-            { id: 'CYLINDER_1', label: 'CYL 1' },
-            { id: 'CYLINDER_2', label: 'CYL 2' },
-            { id: 'CYLINDER_3', label: 'CYL 3 (FAULT SENSOR)' },
-            { id: 'CYLINDER_4', label: 'CYL 4' },
-            { id: 'TURBOCHARGER', label: 'TURBO/WASTEGATE' },
-            { id: 'OIL_SYSTEM', label: 'OIL RADIATOR/PUMP' },
-            { id: 'FUEL_SYSTEM', label: 'FUEL PUMPS' },
-            { id: 'ENGINE_BLOCK', label: 'CRANKCASE BLOCK' },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setSelectedHotspot(item.id)}
-              className={`px-2.5 py-1 text-xs font-mono rounded border transition-all ${
-                selectedHotspot === item.id
-                  ? 'bg-hud-cyan text-black font-bold border-hud-cyan shadow-hud-cyan'
-                  : 'bg-slate-900/80 text-slate-300 border-slate-700 hover:border-hud-cyan/60 hover:text-hud-cyan'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
+          {/* Interactive Click Tip Overlay */}
+          <div className="absolute bottom-3 left-3 z-10 pointer-events-none text-[11px] font-mono text-slate-400 bg-black/70 px-3 py-1.5 rounded border border-slate-800 backdrop-blur-md flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-hud-cyan animate-spin" />
+            <span>Click any 3D engine cylinder, turbo, or gear component to inspect telemetry in real-time</span>
+          </div>
 
-      {/* Right Drawer: Component Hotspot Telemetry & Thermal Diagnostics */}
-      <div className="w-full lg:w-96 hud-glass rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-hud-cyan/20 pb-3">
-          <div className="flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-hud-cyan" />
-            <h3 className="font-display font-bold text-sm tracking-wider text-hud-cyan">
-              HOTSPOT INSPECTOR
-            </h3>
-          </div>
-          <span className={`px-2.5 py-0.5 rounded text-xs font-mono font-bold ${
-            activeHotspot.status === 'CRITICAL'
-              ? 'bg-red-500/20 text-red-400 border border-red-500/50 animate-pulse'
-              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
-          }`}>
-            {activeHotspot.status}
-          </span>
-        </div>
-
-        {/* Selected Component Header */}
-        <div className="bg-slate-900/90 border border-slate-700/80 rounded p-3">
-          <div className="text-xs font-mono text-slate-400">{activeHotspot.subsystem}</div>
-          <div className="text-base font-bold text-white mt-0.5">{activeHotspot.name}</div>
-          <div className="text-xs font-mono text-hud-cyan mt-1">{activeHotspot.spec}</div>
-        </div>
-
-        {/* Live Sensor Metrics Box */}
-        <div className="bg-black/60 border border-hud-cyan/30 rounded p-3 flex flex-col gap-2">
-          <div className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-hud-cyan" /> REAL-TIME SENSOR TELEMETRY
-          </div>
-          <div className="font-mono text-sm text-emerald-400 bg-slate-950 p-2 rounded border border-slate-800">
-            {activeHotspot.telemetryKey}
-          </div>
-          <div className="text-xs font-mono text-slate-400 mt-1 flex items-center gap-1.5">
-            <Gauge className="w-3.5 h-3.5 text-hud-amber" /> FIRST-PRINCIPLES PHYSICS RESIDUAL
-          </div>
-          <div className="font-mono text-xs text-hud-amber bg-slate-950 p-2 rounded border border-slate-800">
-            {activeHotspot.residual}
-          </div>
-        </div>
-
-        {/* Component Physics & Description */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded p-3 text-xs leading-relaxed text-slate-300">
-          <div className="font-bold text-hud-cyan mb-1 flex items-center gap-1">
-            <Info className="w-3.5 h-3.5" /> SUBSYSTEM DIAGNOSTICS & FAILURE MODES
-          </div>
-          {activeHotspot.desc}
-        </div>
-
-        {/* Quick Fault Injection Test for this Component */}
-        <div className="mt-auto pt-3 border-t border-slate-800">
-          <div className="text-xs font-mono text-slate-400 mb-2">QUICK TEST INJECTION:</div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => injectFault('CYL3_INJECTOR', 0.85)}
-              className="px-2 py-1.5 bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 rounded text-xs font-mono text-red-300 transition-colors"
-            >
-              Inject Cyl 3 Clog
-            </button>
-            <button
-              onClick={() => injectFault('OIL_PUMP_CAVITATION', 0.85)}
-              className="px-2 py-1.5 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/40 rounded text-xs font-mono text-amber-300 transition-colors"
-            >
-              Inject Oil Cavitation
-            </button>
-            <button
-              onClick={() => injectFault('BLOW_BY', 0.85)}
-              className="px-2 py-1.5 bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/40 rounded text-xs font-mono text-purple-300 transition-colors"
-            >
-              Inject Blow-By
-            </button>
-            <button
-              onClick={() => clearFault()}
-              className="px-2 py-1.5 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 rounded text-xs font-mono text-emerald-300 transition-colors"
-            >
-              Clear Faults
-            </button>
+          {/* Bottom Right Coordinate Readout */}
+          <div className="absolute bottom-3 right-3 z-10 pointer-events-none text-[10px] font-mono text-hud-cyan bg-black/70 px-2.5 py-1 rounded border border-hud-cyan/30 backdrop-blur-md">
+            FOV: 42° // PITCH: -14.2° // YAW: +0.4° // SCALE: 1:1 ISO
           </div>
         </div>
       </div>

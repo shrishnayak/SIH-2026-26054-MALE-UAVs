@@ -14,8 +14,8 @@ import {
 } from 'lucide-react';
 
 export const FleetTab = () => {
-  const { telemetry, aiPrognostics } = useTelemetry();
-  const [selectedUav, setSelectedUav] = useState('UAV-01');
+  const { telemetry, aiPrognostics, selectUav } = useTelemetry();
+  const [selectedUav, setSelectedUav] = useState(telemetry.mission.uavId || 'UAV-01');
 
   // Swarm Fleet Data Matrix (UAV-01 to UAV-05)
   const fleetData = [
@@ -171,7 +171,10 @@ export const FleetTab = () => {
                 return (
                   <tr
                     key={uav.id}
-                    onClick={() => setSelectedUav(uav.id)}
+                    onClick={() => {
+                      setSelectedUav(uav.id);
+                      selectUav(uav.id);
+                    }}
                     className={`cursor-pointer transition-colors ${
                       isSelected
                         ? 'bg-hud-cyan/15 border-l-4 border-hud-cyan'
@@ -209,7 +212,14 @@ export const FleetTab = () => {
                       )}
                     </td>
                     <td className="py-3 px-3 text-right">
-                      <button className="px-2 py-1 bg-slate-800 hover:bg-hud-cyan hover:text-black rounded text-[11px] transition-colors">
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedUav(uav.id);
+                          selectUav(uav.id);
+                        }}
+                        className="px-2 py-1 bg-slate-800 hover:bg-hud-cyan hover:text-black rounded text-[11px] transition-colors"
+                      >
                         Select
                       </button>
                     </td>

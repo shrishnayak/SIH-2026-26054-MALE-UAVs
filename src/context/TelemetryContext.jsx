@@ -3,6 +3,39 @@ import { io } from 'socket.io-client';
 
 const TelemetryContext = createContext(null);
 
+const fleetTelemetryProfiles = {
+  'UAV-01': {
+    mission: { altitudeFt: 14500, airspeedKts: 110, ambientTempC: -12.5, baroPressureBar: 0.58, missionPhase: 'LOITER' },
+    engine: { rpm: 4800, throttlePct: 78.5, egt: [842.0, 839.5, 844.0, 841.2], cht: [106.2, 107.5, 105.8, 108.1], mapBar: 1.42, oilPressBar: 3.85, oilTempC: 98.4, vibrationGrms: 0.28, fuelFlowLph: 26.4, fuelPressureBar: 3.12, lambda: 0.94, wastegateDutyPct: 62.0 },
+    residuals: { egtResiduals: [2.0, -0.5, 4.0, 1.2], chtResiduals: [0.2, 1.5, -0.2, 2.1], mapResidual: 0.0, oilPressResidual: -0.05, oilTempResidual: 0.4, vibrationResidual: 0.0, maxResidualAbs: 4.0 },
+    health: { index: 98.5, status: 'NOMINAL', alertMessage: 'All Rotax 915 iS engine subsystems operating within flight envelope.', activeFault: 'NONE', severity: 0.0 }
+  },
+  'UAV-02': {
+    mission: { altitudeFt: 18200, airspeedKts: 124, ambientTempC: -18.2, baroPressureBar: 0.51, missionPhase: 'ESCORT' },
+    engine: { rpm: 4920, throttlePct: 82.0, egt: [856.4, 853.8, 858.1, 855.2], cht: [109.8, 110.4, 109.1, 111.0], mapBar: 1.51, oilPressBar: 3.72, oilTempC: 101.6, vibrationGrms: 0.31, fuelFlowLph: 28.1, fuelPressureBar: 3.15, lambda: 0.95, wastegateDutyPct: 65.0 },
+    residuals: { egtResiduals: [4.4, 3.8, 6.1, 4.2], chtResiduals: [3.8, 4.4, 3.1, 5.0], mapResidual: 0.09, oilPressResidual: -0.18, oilTempResidual: 3.6, vibrationResidual: 0.03, maxResidualAbs: 6.1 },
+    health: { index: 96.2, status: 'NOMINAL', alertMessage: 'Escort lead propulsion system operating within flight envelope.', activeFault: 'NONE', severity: 0.0 }
+  },
+  'UAV-03': {
+    mission: { altitudeFt: 22100, airspeedKts: 132, ambientTempC: -24.6, baroPressureBar: 0.42, missionPhase: 'CLIMB TO CRUISE' },
+    engine: { rpm: 5050, throttlePct: 86.5, egt: [868.2, 865.7, 870.4, 867.1], cht: [112.2, 111.8, 112.9, 113.1], mapBar: 1.58, oilPressBar: 3.94, oilTempC: 104.2, vibrationGrms: 0.24, fuelFlowLph: 30.5, fuelPressureBar: 3.22, lambda: 0.93, wastegateDutyPct: 69.0 },
+    residuals: { egtResiduals: [8.2, 7.7, 10.4, 7.1], chtResiduals: [6.2, 5.8, 6.9, 7.1], mapResidual: 0.16, oilPressResidual: 0.04, oilTempResidual: 6.2, vibrationResidual: -0.04, maxResidualAbs: 10.4 },
+    health: { index: 99.1, status: 'NOMINAL', alertMessage: 'Relay orbit propulsion system operating within flight envelope.', activeFault: 'NONE', severity: 0.0 }
+  },
+  'UAV-04': {
+    mission: { altitudeFt: 12800, airspeedKts: 98, ambientTempC: -8.4, baroPressureBar: 0.64, missionPhase: 'DERATED CRUISE' },
+    engine: { rpm: 4380, throttlePct: 65.0, egt: [884.5, 891.2, 899.8, 887.6], cht: [118.4, 120.1, 122.8, 119.7], mapBar: 1.28, oilPressBar: 3.18, oilTempC: 113.6, vibrationGrms: 0.52, fuelFlowLph: 22.0, fuelPressureBar: 2.94, lambda: 0.97, wastegateDutyPct: 54.0 },
+    residuals: { egtResiduals: [24.5, 31.2, 39.8, 27.6], chtResiduals: [12.4, 14.1, 16.8, 13.7], mapResidual: -0.14, oilPressResidual: -0.72, oilTempResidual: 15.6, vibrationResidual: 0.24, maxResidualAbs: 39.8 },
+    health: { index: 84.5, status: 'DEGRADED', alertMessage: 'Perimeter patrol propulsion system operating under derated cruise limits.', activeFault: 'NONE', severity: 0.25 }
+  },
+  'UAV-05': {
+    mission: { altitudeFt: 0, airspeedKts: 0, ambientTempC: 22.0, baroPressureBar: 1.01, missionPhase: 'GROUND MAINTENANCE' },
+    engine: { rpm: 1200, throttlePct: 8.0, egt: [712.5, 718.2, 725.4, 716.8], cht: [92.4, 94.1, 96.8, 93.7], mapBar: 0.72, oilPressBar: 2.18, oilTempC: 68.5, vibrationGrms: 0.76, fuelFlowLph: 4.2, fuelPressureBar: 2.42, lambda: 1.02, wastegateDutyPct: 12.0 },
+    residuals: { egtResiduals: [-147.5, -141.8, -134.6, -143.2], chtResiduals: [-13.6, -12.9, -9.2, -14.3], mapResidual: -0.70, oilPressResidual: -1.72, oilTempResidual: -29.9, vibrationResidual: 0.48, maxResidualAbs: 147.5 },
+    health: { index: 72.0, status: 'DEGRADED', alertMessage: 'Hangar reserve aircraft is restricted to ground maintenance operations.', activeFault: 'NONE', severity: 0.45 }
+  }
+};
+
 export const TelemetryProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [socketError, setSocketError] = useState(null);
@@ -109,6 +142,7 @@ export const TelemetryProvider = ({ children }) => {
   });
 
   const socketRef = useRef(null);
+  const activeUavRef = useRef('UAV-01');
   const audioCtxRef = useRef(null);
   const lastAlertStatusRef = useRef('NOMINAL');
 
@@ -325,6 +359,7 @@ export const TelemetryProvider = ({ children }) => {
     });
 
     socket.on('telemetry_frame', (data) => {
+      if ((data.mission?.uavId || 'UAV-01') !== activeUavRef.current) return;
       setTelemetry(data);
 
       // Trigger Audio Alarm on Status Transition
@@ -480,6 +515,40 @@ export const TelemetryProvider = ({ children }) => {
     }
   }, []);
 
+  const selectUav = useCallback((uavId) => {
+    const profile = fleetTelemetryProfiles[uavId];
+    if (!profile) return;
+
+    activeUavRef.current = uavId;
+    const nextTelemetry = {
+      timestamp: Date.now(),
+      mission: { ...profile.mission, missionTime: 3640, uavId },
+      engine: { ...profile.engine },
+      residuals: { ...profile.residuals },
+      health: { ...profile.health },
+      canBusFrames: telemetry.canBusFrames
+    };
+    setTelemetry(nextTelemetry);
+    setAiPrognostics(computeLocalAiPrognostics(nextTelemetry.engine, nextTelemetry.residuals, nextTelemetry.health.activeFault));
+    setHistoryBuffer(prev => ({
+      ...prev,
+      egt1: Array(40).fill(profile.engine.egt[0]),
+      egt2: Array(40).fill(profile.engine.egt[1]),
+      egt3: Array(40).fill(profile.engine.egt[2]),
+      egt4: Array(40).fill(profile.engine.egt[3]),
+      cht1: Array(40).fill(profile.engine.cht[0]),
+      cht2: Array(40).fill(profile.engine.cht[1]),
+      cht3: Array(40).fill(profile.engine.cht[2]),
+      cht4: Array(40).fill(profile.engine.cht[3]),
+      map: Array(40).fill(profile.engine.mapBar),
+      oilPress: Array(40).fill(profile.engine.oilPressBar),
+      oilTemp: Array(40).fill(profile.engine.oilTempC),
+      vibration: Array(40).fill(profile.engine.vibrationGrms),
+      healthIndex: Array(40).fill(profile.health.index),
+      anomalyScore: Array(40).fill(0.01)
+    }));
+  }, [computeLocalAiPrognostics, telemetry.canBusFrames]);
+
   return (
     <TelemetryContext.Provider
       value={{
@@ -493,6 +562,7 @@ export const TelemetryProvider = ({ children }) => {
         injectFault,
         clearFault,
         updateManualConditions
+        ,selectUav
       }}
     >
       {children}

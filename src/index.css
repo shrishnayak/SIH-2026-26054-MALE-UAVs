@@ -4,36 +4,31 @@
 
 @layer base {
   body {
-    @apply bg-[#030712] text-slate-100 font-hud antialiased selection:bg-cyan-500 selection:text-black;
-    background-image: 
-      radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.04) 0%, transparent 60%),
-      linear-gradient(rgba(10, 25, 47, 0.3) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(10, 25, 47, 0.3) 1px, transparent 1px);
-    background-size: 100% 100%, 32px 32px, 32px 32px;
+    @apply bg-[#090a0f] text-slate-100 font-hud antialiased selection:bg-blue-600 selection:text-white;
+    background-image:
+      linear-gradient(rgba(51, 65, 85, 0.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(51, 65, 85, 0.14) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 }
 
 /* Custom Tactical HUD Glassmorphism & Borders */
 .hud-glass {
-  background: rgba(10, 25, 47, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 240, 255, 0.18);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  background: #141a23;
+  border: 1px solid #2d3748;
+  box-shadow: none;
 }
 
 .hud-glass-amber {
-  background: rgba(30, 20, 10, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+  background: #211b12;
+  border: 1px solid rgba(217, 119, 6, 0.55);
+  box-shadow: none;
 }
 
 .hud-glass-red {
-  background: rgba(35, 10, 10, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(239, 68, 68, 0.45);
-  box-shadow: 0 0 25px rgba(239, 68, 68, 0.25);
+  background: #241416;
+  border: 1px solid rgba(220, 38, 38, 0.55);
+  box-shadow: none;
 }
 
 .hud-corner-bracket {
@@ -47,8 +42,8 @@
   left: -1px;
   width: 8px;
   height: 8px;
-  border-top: 2px solid #00F0FF;
-  border-left: 2px solid #00F0FF;
+  border-top: 2px solid #2563eb;
+  border-left: 2px solid #2563eb;
   pointer-events: none;
 }
 
@@ -59,26 +54,26 @@
   right: -1px;
   width: 8px;
   height: 8px;
-  border-bottom: 2px solid #00F0FF;
-  border-right: 2px solid #00F0FF;
+  border-bottom: 2px solid #2563eb;
+  border-right: 2px solid #2563eb;
   pointer-events: none;
 }
 
-/* Glowing text classes */
+/* Legacy glow utility names retained for markup compatibility. */
 .glow-cyan {
-  text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+  text-shadow: none;
 }
 
 .glow-amber {
-  text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+  text-shadow: none;
 }
 
 .glow-red {
-  text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+  text-shadow: none;
 }
 
 .glow-green {
-  text-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  text-shadow: none;
 }
 
 /* Custom Scrollbar for Tactical Telemetry Tables & Feeds */
@@ -88,7 +83,7 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #030712;
+  background: #090a0f;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -97,7 +92,7 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00F0FF;
+  background: #2563eb;
 }
 
 /* Leaflet Dark HUD Overrides */
@@ -116,8 +111,8 @@
     to bottom,
     rgba(255,255,255,0),
     rgba(255,255,255,0) 50%,
-    rgba(0, 240, 255, 0.02) 50%,
-    rgba(0, 240, 255, 0.02)
+    rgba(148, 163, 184, 0.025) 50%,
+    rgba(148, 163, 184, 0.025)
   );
   background-size: 100% 4px;
 }
