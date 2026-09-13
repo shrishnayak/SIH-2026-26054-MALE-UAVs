@@ -64,7 +64,7 @@ const RadialGauge = ({ value, min, max, label, unit, criticalLow, warningLow, wa
 };
 
 // Reusable SVG Dynamic Line Chart for Telemetry Streams
-const DynamicSparkline = ({ data, color = '#00F0FF', min, max, label, currentVal, unit }) => {
+const DynamicSparkline = ({ data, color = '#19C7A5', min, max, label, currentVal, unit }) => {
   const points = data && data.length > 0 ? data : Array(40).fill(min);
   const dataMin = min !== undefined ? min : Math.min(...points) * 0.95;
   const dataMax = max !== undefined ? max : Math.max(...points) * 1.05;
@@ -299,7 +299,7 @@ export const TelemetryTab = () => {
           label="OIL PRESSURE (bar)"
           data={historyBuffer.oilPress}
           currentVal={engine.oilPressBar}
-          color="#00F0FF"
+          color="#19C7A5"
           min={1.0}
           max={5.5}
           unit="bar"

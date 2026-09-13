@@ -55,9 +55,9 @@ export const HudHologramScene = ({ showHudRings = true, activeFault = 'NONE' }) 
     }
   });
 
-  const hudCyan = '#475569';
-  const hudGlow = '#334155';
-  const faultColor = '#ef4444';
+  const hudCyan = '#19C7A5';
+  const hudGlow = '#1D3B2E';
+  const faultColor = '#FF4D4D';
   const mainHudColor = activeFault !== 'NONE' ? faultColor : hudCyan;
 
   return (
@@ -67,7 +67,7 @@ export const HudHologramScene = ({ showHudRings = true, activeFault = 'NONE' }) 
          ======================================================== */}
       <group position={[0, 0, -1.2]} rotation={[-Math.PI / 2, 0, 0]}>
         {/* Deep Navy/Cyan Coordinate Grid */}
-        <gridHelper args={[24, 48, '#475569', '#1e293b']} rotation={[Math.PI / 2, 0, 0]} />
+          <gridHelper args={[24, 48, '#2B4A3B', '#10231B']} rotation={[Math.PI / 2, 0, 0]} />
         
         {/* Fine Sub-grid Accent */}
         <gridHelper args={[12, 48, '#334155', '#111827']} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.002]} />

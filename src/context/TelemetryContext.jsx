@@ -236,8 +236,7 @@ export const TelemetryProvider = ({ children }) => {
           };
           break;
 
-        case 'BLOW_BY':
-          dominant = 'Oil_Temperature';
+        case 'BLOW_BY':          dominant = 'Oil_Temperature';
           faultName = 'PISTON_RING_BLOW_BY_AND_CRANKCASE_PRESSURIZATION';
           baseHours = 12.4;
           degPerHr = 8.2;

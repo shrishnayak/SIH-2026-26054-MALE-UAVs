@@ -137,10 +137,10 @@ export const PrognosticsTab = () => {
               <line x1="40" y1="140" x2="480" y2="140" stroke="#1e293b" strokeDasharray="3,3" />
 
               {/* Y Axis Labels */}
-              <text x="5" y="24" fill="#64748b" fontSize="10" fontFamily="monospace">800h</text>
-              <text x="5" y="64" fill="#64748b" fontSize="10" fontFamily="monospace">400h</text>
-              <text x="5" y="104" fill="#64748b" fontSize="10" fontFamily="monospace">100h</text>
-              <text x="15" y="144" fill="#ef4444" fontSize="10" fontFamily="monospace">0h (EOL)</text>
+              <text x="5" y="24" fill="#64748b" fontSize="10" fontFamily="Amazon Ember, Segoe UI, sans-serif">800h</text>
+              <text x="5" y="64" fill="#64748b" fontSize="10" fontFamily="Amazon Ember, Segoe UI, sans-serif">400h</text>
+              <text x="5" y="104" fill="#64748b" fontSize="10" fontFamily="Amazon Ember, Segoe UI, sans-serif">100h</text>
+              <text x="15" y="144" fill="#ef4444" fontSize="10" fontFamily="Amazon Ember, Segoe UI, sans-serif">0h (EOL)</text>
 
               {/* Shaded 95% Confidence Interval polygon */}
               {isAnomaly ? (
@@ -179,7 +179,7 @@ export const PrognosticsTab = () => {
                 <g transform="translate(420, 158)">
                   <circle r="5" fill="#EF4444" className="animate-ping" />
                   <circle r="4" fill="#EF4444" />
-                  <text x="-45" y="-12" fill="#EF4444" fontSize="11" fontFamily="monospace" fontWeight="bold">
+                    <text x="-45" y="-12" fill="#EF4444" fontSize="11" fontFamily="Amazon Ember, Segoe UI, sans-serif" fontWeight="bold">
                     CRITICAL LIMIT
                   </text>
                 </g>

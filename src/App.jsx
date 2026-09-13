@@ -18,7 +18,8 @@ import {
   Wrench, 
   Plane,
   Clock,
-  Sparkles
+  Sparkles,
+  Menu
 } from 'lucide-react';
 
 // Tab Components
@@ -33,6 +34,7 @@ import { CopilotTab } from './components/CopilotTab';
 export default function App() {
   const { telemetry, isConnected, audioEnabled, setAudioEnabled, injectFault, clearFault } = useTelemetry();
   const [activeTab, setActiveTab] = useState('BLUEPRINT');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [missionClock, setMissionClock] = useState(new Date().toLocaleTimeString());
 
   // Update Clock every second
@@ -61,7 +63,7 @@ export default function App() {
   const ActiveComponent = tabs.find(t => t.id === activeTab)?.component || UavBlueprintTab;
 
   return (
-    <div className="min-h-screen bg-[#090a0f] text-slate-100 flex flex-col font-hud relative selection:bg-blue-600 selection:text-white">
+    <div className={`min-h-screen bg-[#080B0A] text-slate-100 flex flex-col font-hud relative selection:bg-hud-cyan selection:text-slate-950 ${isSidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
       {/* 1. Military Tactical Header */}
       <header className="hud-glass border-b border-slate-700 px-4 py-2 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50">
         {/* Left: Branding & UAV Metadata */}
@@ -238,7 +240,17 @@ export default function App() {
       )}
 
       {/* 4. Tab Switcher Navigation */}
-      <nav className="bg-slate-950/90 border-b border-slate-800 px-4 flex items-center gap-1 overflow-x-auto">
+      <nav className="app-sidebar bg-slate-950/90 border-b border-slate-800 px-4 flex items-center gap-1 overflow-x-auto">
+        <button
+          type="button"
+          className="sidebar-toggle"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          aria-label={isSidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
+          title={isSidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
+        >
+          <Menu className="w-5 h-5" />
+          <span>Menu</span>
+        </button>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -254,7 +266,7 @@ export default function App() {
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
-              {tab.label}
+              <span className="sidebar-label">{tab.label}</span>
             </button>
           );
         })}

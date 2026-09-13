@@ -19,8 +19,8 @@ import {
 const uavIcon = new L.DivIcon({
   className: 'custom-uav-icon',
   html: `
-    <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: rgba(0, 240, 255, 0.2); border: 2px solid #00F0FF; border-radius: 50%; box-shadow: 0 0 15px #00F0FF;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="#00F0FF" stroke="#030712" stroke-width="1.5">
+    <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: rgba(25, 199, 165, 0.2); border: 2px solid #19C7A5; border-radius: 50%; box-shadow: 0 0 15px #19C7A5;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#19C7A5" stroke="#050908" stroke-width="1.5">
         <polygon points="12 2 2 7 12 12 22 7 12 2"/>
         <polyline points="2 17 12 22 22 17"/>
         <polyline points="2 12 12 17 22 12"/>
@@ -59,37 +59,47 @@ export const MissionMapTab = () => {
   const { telemetry, aiPrognostics } = useTelemetry();
   const isCritical = telemetry.health.status === 'CRITICAL';
   const isDegraded = telemetry.health.status === 'DEGRADED';
+  const braveMapsUrl = 'https://search.brave.com/maps?source=web&bbox=73.352%2C18.345%2C74.392%2C18.774';
 
-  // Mission Geolocation Coordinates (Southern California Tactical Test Corridor)
-  const homeBase = [32.7157, -117.1611]; // FOB Bravo
-  const emergencyBase = [32.8210, -116.8120]; // Aux Recovery Strip 04
-  const uavCurrentPos = [32.8850, -116.4200]; // Live UAV Position
+  // Mission coordinates are kept inside the Pune bounding box supplied for this planner.
+  const homeBase = [18.5204, 73.8567]; // FOB Bravo, Pune
+  const emergencyBase = [18.6690, 73.8950]; // Aux Recovery Strip 04, east divert
+  const uavCurrentPos = [18.5850, 73.9500]; // Live UAV position
 
   // Nominal Mission Waypoints (Cyan Trajectory)
   const nominalFlightPlan = [
     homeBase,
-    [32.8000, -116.9000],
-    [32.8850, -116.6500],
+    [18.5480, 73.7900],
+    [18.6000, 73.8350],
     uavCurrentPos,
-    [33.1500, -116.1500],
-    [33.3500, -115.8000],
-    [33.0000, -115.6000]
+    [18.6500, 74.0200],
+    [18.7200, 74.1200],
+    [18.7000, 74.3000]
   ];
 
-  // RL Autonomous Recalculated Emergency Return-to-Base (RTB) Path (Amber/Red Dotted Line)
-  const rlEmergencyRtbPath = [
+  // Each fault gets a distinct RL corridor so the replanner visibly changes its route.
+  const faultRoutePlans = {
+    CYL3_INJECTOR: [uavCurrentPos, [18.5700, 73.9100], [18.5550, 73.8750], emergencyBase],
+    BLOW_BY: [uavCurrentPos, [18.6250, 73.9200], [18.6450, 73.8800], emergencyBase],
+    OIL_PUMP_CAVITATION: [uavCurrentPos, [18.5600, 73.9700], [18.6000, 74.0050], emergencyBase],
+    TURBO_WASTEGATE_STUCK: [uavCurrentPos, [18.6150, 73.9800], [18.6800, 73.9600], emergencyBase],
+    COOLING_DEGRADATION: [uavCurrentPos, [18.5450, 73.9350], [18.5850, 73.8750], emergencyBase]
+  };
+
+  const activeFault = telemetry.health.activeFault;
+  const rlEmergencyRtbPath = faultRoutePlans[activeFault] || [
     uavCurrentPos,
-    [32.8600, -116.6000],
-    [32.8400, -116.7500],
+    [18.6100, 73.9250],
+    [18.6400, 73.9000],
     emergencyBase
   ];
 
   // Geofence Patrol Zone Coordinates
   const geofencePolygon = [
-    [32.5500, -117.3000],
-    [33.4500, -117.3000],
-    [33.4500, -115.4000],
-    [32.5500, -115.4000]
+    [18.3450, 73.3520],
+    [18.7740, 73.3520],
+    [18.7740, 74.3920],
+    [18.3450, 74.3920]
   ];
 
   return (
@@ -118,89 +128,91 @@ export const MissionMapTab = () => {
           </div>
         </div>
 
-        {/* Leaflet Map */}
-        <div className="w-full h-full">
+        {/* Native map view centered on the bounding box from the supplied Brave Maps URL. */}
+        <div className="w-full h-full relative bg-slate-950">
           <MapContainer
-            center={[32.8500, -116.6000]}
-            zoom={9}
-            style={{ height: '100%', width: '100%', background: '#030712' }}
+            center={[18.5595, 73.872]}
+            zoom={10}
+            style={{ height: '100%', width: '100%', background: '#050908' }}
             zoomControl={false}
           >
-            {/* Dark Styled OpenStreetMap Tiles */}
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {/* Geofence Perimeter */}
             <Polygon
               positions={geofencePolygon}
-              pathOptions={{ color: '#00F0FF', weight: 1, dashArray: '5, 5', fillOpacity: 0.03 }}
+              pathOptions={{ color: '#19C7A5', weight: 1, dashArray: '5, 5', fillOpacity: 0.03 }}
             />
 
-            {/* Nominal Flight Route */}
+            {/* Nominal mission corridor remains visible as a reference route. */}
             <Polyline
               positions={nominalFlightPlan}
-              pathOptions={{ color: '#00F0FF', weight: 3, opacity: 0.8 }}
+              pathOptions={{ color: '#19C7A5', weight: 3, opacity: 0.72 }}
             />
 
-            {/* RL Autonomous RTB Recalculated Path */}
-            {(isCritical || isDegraded) && (
+            {/* Fault-specific RL route is rendered only when a degraded/critical state is active. */}
+            {(isCritical || isDegraded || activeFault !== 'NONE') && (
               <Polyline
                 positions={rlEmergencyRtbPath}
                 pathOptions={{
                   color: isCritical ? '#EF4444' : '#F59E0B',
-                  weight: 4,
-                  dashArray: '8, 8',
-                  opacity: 0.95
+                  weight: 5,
+                  dashArray: '10, 8',
+                  opacity: 0.98
                 }}
               />
             )}
 
-            {/* Reachability Gliding Safe Footprint Circle */}
             <Circle
               center={uavCurrentPos}
-              radius={isCritical ? 35000 : 85000}
+              radius={isCritical ? 18000 : 32000}
               pathOptions={{
                 color: isCritical ? '#EF4444' : '#10B981',
                 fillColor: isCritical ? '#EF4444' : '#10B981',
-                fillOpacity: 0.08,
+                fillOpacity: 0.1,
                 weight: 1.5,
                 dashArray: '4, 4'
               }}
             />
 
-            {/* Base Marker */}
             <Marker position={homeBase} icon={baseIcon}>
-              <Popup className="tactical-popup">
+              <Popup>
                 <div className="text-xs font-mono">
                   <div className="font-bold text-emerald-400">FORWARD OPERATING BASE BRAVO</div>
-                  <div>Primary Home Recovery Field (Rwy 27L)</div>
+                  <div>Primary home recovery field | Pune sector</div>
                 </div>
               </Popup>
             </Marker>
 
-            {/* Emergency Strip Marker */}
             <Marker position={emergencyBase} icon={emergencyIcon}>
               <Popup>
                 <div className="text-xs font-mono">
                   <div className="font-bold text-amber-400">AUX RECOVERY STRIP 04</div>
-                  <div>Nearest Divert Airfield (Dist: 22.4 NM)</div>
+                  <div>RL emergency divert destination</div>
                 </div>
               </Popup>
             </Marker>
 
-            {/* Live UAV Marker */}
             <Marker position={uavCurrentPos} icon={uavIcon}>
               <Popup>
                 <div className="text-xs font-mono">
-                  <div className="font-bold text-hud-cyan">UAV-01 (MALE AIR VEHICLE)</div>
-                  <div>Alt: 14,500 ft | Speed: 110 kts</div>
+                  <div className="font-bold text-hud-cyan">RL REPLANNER OPERATING AREA</div>
+                  <div>UAV-01 live position | Pune sector</div>
                   <div>RUL: {aiPrognostics.rul_hours_mean.toFixed(1)} hrs</div>
                 </div>
               </Popup>
             </Marker>
           </MapContainer>
+          <a
+            href={braveMapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="absolute top-3 right-3 z-[1000] px-3 py-1.5 rounded border border-hud-cyan/60 bg-slate-950/90 text-xs font-mono font-bold text-hud-cyan backdrop-blur-md hover:bg-hud-cyan/20"
+          >
+            OPEN IN BRAVE MAPS
+          </a>
         </div>
 
         {/* Tactical Legend at Bottom of Map */}
