@@ -40,6 +40,7 @@ export const HudHologramScene = ({ showHudRings = true, activeFault = 'NONE' }) 
   });
 
   const tacticalAmber = '#C59B27';
+  const cryoTeal = '#67E8F9';
   const defenseSage = '#2E7D5A';
   const alertRed = '#9E2A2B';
   const activeColor = activeFault !== 'NONE' ? alertRed : tacticalAmber;
