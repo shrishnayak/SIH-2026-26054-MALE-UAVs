@@ -1,0 +1,381 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Rajdhani:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --dashboard-bg: #07090D;
+    --dashboard-surface: #0C1017;
+    --dashboard-surface-alt: #111620;
+    --dashboard-rail: #090C12;
+    --dashboard-border: rgba(197, 155, 39, 0.18);
+    --dashboard-border-subtle: rgba(255, 255, 255, 0.07);
+    --dashboard-muted: #7E8A9C;
+    --dashboard-text: #F1F5F9;
+    --tactical-amber: #C59B27;
+    --tactical-gold: #D4A373;
+    --defense-sage: #2E7D5A;
+    --defense-crimson: #9E2A2B;
+    --dashboard-shadow: 0 16px 36px rgba(3, 5, 8, 0.6);
+  }
+
+  html { 
+    background: var(--dashboard-bg); 
+    scroll-behavior: smooth; 
+    font-family: "Space Grotesk", sans-serif;
+  }
+
+  body {
+    @apply text-slate-100 antialiased;
+    font-family: "Space Grotesk", sans-serif !important;
+    color: var(--dashboard-text);
+    background-color: var(--dashboard-bg);
+    background-image:
+      radial-gradient(circle at 75% -15%, rgba(197, 155, 39, 0.05), transparent 45%),
+      radial-gradient(circle at 20% 115%, rgba(46, 125, 90, 0.04), transparent 45%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.012), transparent 50%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  * { 
+    border-color: var(--dashboard-border-subtle); 
+    font-family: "Space Grotesk", sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Space Grotesk", sans-serif !important;
+    letter-spacing: -0.02em;
+  }
+
+  button, input, select, textarea {
+    font-family: "Space Grotesk", sans-serif !important;
+  }
+
+  code, pre, .font-mono {
+    font-family: "JetBrains Mono", monospace !important;
+  }
+
+  .font-tactical {
+    font-family: "Rajdhani", sans-serif !important;
+  }
+
+  .font-display {
+    font-family: "Space Grotesk", sans-serif !important;
+  }
+
+  .font-syne {
+    font-family: "Syne", sans-serif !important;
+  }
+}
+
+/* =========================================================================
+   1. DEFENSE AEROSPACE HUD SURFACES & CORNER BRACKETS
+   ========================================================================= */
+.hud-glass {
+  background: rgba(12, 16, 23, 0.84);
+  border: 1px solid rgba(197, 155, 39, 0.16);
+  border-radius: 14px;
+  box-shadow: var(--dashboard-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.hud-glass-amber {
+  background: rgba(20, 17, 12, 0.88);
+  border: 1px solid rgba(197, 155, 39, 0.38);
+  box-shadow: 0 0 20px rgba(197, 155, 39, 0.1);
+  backdrop-filter: blur(16px);
+}
+
+.hud-glass-red {
+  background: rgba(26, 12, 14, 0.88);
+  border: 1px solid rgba(158, 42, 43, 0.45);
+  box-shadow: 0 0 20px rgba(158, 42, 43, 0.15);
+  backdrop-filter: blur(16px);
+}
+
+.hud-corner-bracket {
+  position: relative;
+}
+
+.hud-corner-bracket::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid var(--tactical-amber);
+  border-left: 2px solid var(--tactical-amber);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hud-corner-bracket::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  border-bottom: 2px solid var(--tactical-amber);
+  border-right: 2px solid var(--tactical-amber);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Subtle Glow Utilities (No neon) */
+.glow-amber {
+  text-shadow: 0 0 10px rgba(197, 155, 39, 0.35);
+}
+
+.glow-teal {
+  text-shadow: 0 0 10px rgba(46, 125, 90, 0.35);
+}
+
+.glow-red {
+  text-shadow: 0 0 10px rgba(158, 42, 43, 0.4);
+}
+
+/* =========================================================================
+   2. TACTICAL SIDEBAR & RESPONSIVE RAIL LAYOUT
+   ========================================================================= */
+#root > div {
+  min-height: 100vh;
+  background: transparent !important;
+}
+
+#root > div.sidebar-expanded,
+#root > div.sidebar-collapsed {
+  --sidebar-width: 88px;
+}
+
+#root > div.sidebar-expanded {
+  --sidebar-width: 240px;
+}
+
+#root > div.sidebar-expanded > header,
+#root > div.sidebar-collapsed > header,
+#root > div.sidebar-expanded > header + div,
+#root > div.sidebar-collapsed > header + div,
+#root > div.sidebar-expanded > main,
+#root > div.sidebar-collapsed > main {
+  margin-left: var(--sidebar-width);
+  transition: margin-left 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#root > div.sidebar-expanded > nav,
+#root > div.sidebar-collapsed > nav {
+  width: var(--sidebar-width);
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#root > div > nav {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 60;
+  width: 88px;
+  padding: 16px 8px !important;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: rgba(9, 12, 18, 0.96) !important;
+  border-right: 1px solid rgba(197, 155, 39, 0.16) !important;
+  backdrop-filter: blur(20px);
+}
+
+#root > div > nav button {
+  min-height: 52px;
+  width: 100%;
+  padding: 8px 4px !important;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+  border: 1px solid transparent !important;
+  border-radius: 10px;
+  color: var(--dashboard-muted) !important;
+  font-family: "JetBrains Mono", monospace !important;
+  font-size: 9px !important;
+  line-height: 1.1;
+  text-align: center;
+  transition: all 180ms ease;
+}
+
+#root > div > nav button:hover {
+  color: var(--dashboard-text) !important;
+  background: rgba(197, 155, 39, 0.08) !important;
+  border-color: rgba(197, 155, 39, 0.25) !important;
+}
+
+#root > div > nav button[class*="border-hud-cyan"],
+#root > div > nav button[class*="border-tactical-amber"] {
+  color: #07090D !important;
+  background: var(--tactical-amber) !important;
+  border-color: var(--tactical-amber) !important;
+  box-shadow: 0 4px 16px rgba(197, 155, 39, 0.25);
+  font-weight: bold;
+}
+
+#root > div > nav button[class*="border-hud-cyan"] svg,
+#root > div > nav button[class*="border-tactical-amber"] svg { 
+  color: #07090D !important; 
+}
+
+.sidebar-toggle {
+  flex: 0 0 auto;
+  min-height: 44px !important;
+  width: 100% !important;
+  margin-bottom: 8px;
+  padding: 10px !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: var(--dashboard-muted) !important;
+  background: var(--dashboard-surface) !important;
+  font-size: 11px !important;
+  text-align: left !important;
+}
+
+.sidebar-toggle:hover {
+  color: var(--tactical-amber) !important;
+  border-color: var(--tactical-amber) !important;
+}
+
+.sidebar-toggle span,
+.sidebar-label {
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  max-width: 0;
+  transition: opacity 160ms ease, max-width 220ms ease;
+}
+
+.sidebar-expanded .sidebar-toggle span,
+.sidebar-expanded .sidebar-label {
+  opacity: 1;
+  max-width: 180px;
+}
+
+.sidebar-expanded > nav button:not(.sidebar-toggle) {
+  min-height: 46px;
+  padding: 10px 14px !important;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 12px;
+  font-size: 11px !important;
+  text-align: left;
+}
+
+.sidebar-collapsed > nav .sidebar-toggle {
+  justify-content: center !important;
+}
+
+/* Main Dashboard Flow Container */
+#root > div > main {
+  min-height: calc(100vh - 72px);
+  padding: 24px 28px !important;
+  min-width: 0;
+  background: transparent;
+  overflow: visible !important;
+}
+
+/* =========================================================================
+   3. CUSTOM SCROLLBARS FOR TACTICAL TABLES & LOGS
+   ========================================================================= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dashboard-rail);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #252F43;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tactical-amber);
+}
+
+/* Scanline Animation Overlay */
+.scanline-layer {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(197, 155, 39, 0.015) 50%,
+    rgba(197, 155, 39, 0.015)
+  );
+  background-size: 100% 4px;
+}
+
+/* Leaflet Dark Tactical Map Overrides */
+.leaflet-container {
+  background-color: #07090D !important;
+  font-family: "Space Grotesk", sans-serif !important;
+}
+
+.leaflet-tile {
+  filter: brightness(0.55) invert(1) contrast(2.2) hue-rotate(200deg) saturate(0.4) brightness(0.7);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--dashboard-surface);
+  color: var(--dashboard-text);
+  border: 1px solid var(--dashboard-border);
+  box-shadow: var(--dashboard-shadow);
+  border-radius: 8px;
+  font-family: "Space Grotesk", sans-serif !important;
+}
+
+.leaflet-control-zoom a {
+  background: var(--dashboard-surface) !important;
+  color: var(--tactical-amber) !important;
+  border-color: var(--dashboard-border) !important;
+}
+
+/* =========================================================================
+   4. MOBILE RESPONSIVE BREAKPOINTS
+   ========================================================================= */
+@media (max-width: 768px) {
+  #root > div > header,
+  #root > div > header + div,
+  #root > div > main { 
+    margin-left: 0 !important; 
+  }
+
+  #root > div > nav {
+    position: sticky;
+    inset: auto;
+    width: 100% !important;
+    height: auto;
+    min-height: 64px;
+    padding: 8px 12px !important;
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  #root > div > main {
+    padding: 16px 12px 48px !important;
+  }
+
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .sidebar-label {
+    opacity: 1;
+    max-width: 180px;
+  }
+}
