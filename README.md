@@ -39,13 +39,13 @@
                            |            React 18 + Tailwind CSS + R3F            |
                            |           Tactical Ground Control Station           |
                            +-----------------------------------------------------+
-                           | 1. 📐 3D Wireframe CAD Blueprint & Thermal Hotspots |
-                           | 2. 📊 Live 100 Hz Telemetry & Residual Barometers   |
-                           | 3. 🧠 PyTorch Prognostics, MSE Trace & SHAP XAI     |
-                           | 4. 🗺️ RL Autonomous Emergency RTB Replanner        |
-                           | 5. 🛸 Multi-UAV Swarm Fleet Management Matrix       |
-                           | 6. ⚖️ Interactive Judge's Diagnostics Sandbox       |
-                           | 7. 📄 AI GCS Copilot & 1-Click PDF Airworthiness    |
+                           | 1.  3D Wireframe CAD Blueprint & Thermal Hotspots |
+                           | 2.  Live 100 Hz Telemetry & Residual Barometers   |
+                           | 3.  PyTorch Prognostics, MSE Trace & SHAP XAI     |
+                           | 4.  RL Autonomous Emergency RTB Replanner        |
+                           | 5.  Multi-UAV Swarm Fleet Management Matrix       |
+                           | 6.  Interactive Judge's Diagnostics Sandbox       |
+                           | 7.  AI GCS Copilot & 1-Click PDF Airworthiness    |
                            +-----------------------------------------------------+
 ```
 
