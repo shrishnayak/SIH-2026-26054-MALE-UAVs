@@ -1,34 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { useTelemetry } from './context/TelemetryContext';
-import { tacticalAudio } from './utils/tacticalAudio';
-import { 
-  Box, 
-  Activity, 
-  Brain, 
-  Map, 
-  Users, 
-  Sliders, 
-  FileText, 
-  Volume2, 
-  VolumeX, 
-  Radio, 
-  ShieldAlert, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Flame, 
-  Wrench, 
-  Plane,
-  Clock,
-  Sparkles,
+import React, { useEffect, useState } from 'react';
+import {
+  Activity,
+  AlertTriangle,
+  Box,
+  Brain,
+  ChevronRight,
+  FileText,
+  Map,
   Menu,
-  Eye,
-  Layers,
-  ArrowRight
+  Plane,
+  Radio,
+  ShieldAlert,
+  ShieldCheck,
+  Sliders,
+  Users,
 } from 'lucide-react';
 
-// Tab Components
-import { LandingScrollytelling } from './components/landing/LandingScrollytelling';
-import { UavBlueprintTab } from './components/UavBlueprintTab';
+import { useTelemetry } from './context/TelemetryContext';
+import { tacticalAudio } from './utils/tacticalAudio';
+import { StatusDot } from './components/ui/primitives';
+import { LandingPage } from './components/landing/LandingPage';
+import { CadStudioTab } from './components/CadStudioTab';
 import { TelemetryTab } from './components/TelemetryTab';
 import { PrognosticsTab } from './components/PrognosticsTab';
 import { MissionMapTab } from './components/MissionMapTab';
@@ -36,363 +28,265 @@ import { FleetTab } from './components/FleetTab';
 import { JudgesSandboxTab } from './components/JudgesSandboxTab';
 import { CopilotTab } from './components/CopilotTab';
 
+const TABS = [
+  { id: 'STUDIO', label: 'CAD Studio', icon: Box, component: CadStudioTab },
+  { id: 'TELEMETRY', label: 'Live Telemetry', icon: Activity, component: TelemetryTab },
+  { id: 'PROGNOSTICS', label: 'Prognostics & XAI', icon: Brain, component: PrognosticsTab },
+  { id: 'MISSION_MAP', label: 'Mission Replanner', icon: Map, component: MissionMapTab },
+  { id: 'FLEET', label: 'Swarm Fleet', icon: Users, component: FleetTab },
+  { id: 'SANDBOX', label: "Judge's Sandbox", icon: Sliders, component: JudgesSandboxTab },
+  { id: 'COPILOT', label: 'Copilot & Reports', icon: FileText, component: CopilotTab },
+];
+
+const FAULTS = [
+  { id: 'CYL3_INJECTOR', label: 'Cyl 3 clog' },
+  { id: 'BLOW_BY', label: 'Piston blow-by' },
+  { id: 'OIL_PUMP_CAVITATION', label: 'Oil cavitation' },
+  { id: 'TURBO_WASTEGATE_STUCK', label: 'Turbo surge' },
+  { id: 'COOLING_DEGRADATION', label: 'Cooling decay' },
+];
+
 export default function App() {
   const { telemetry, isConnected, audioEnabled, setAudioEnabled, injectFault, clearFault } = useTelemetry();
-  const [appMode, setAppMode] = useState('SHOWCASE'); // 'SHOWCASE' (Apple-style 3D Scrollytelling) | 'DASHBOARD' (Operations Flight Deck)
-  const [activeTab, setActiveTab] = useState('BLUEPRINT');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [missionClock, setMissionClock] = useState(new Date().toLocaleTimeString());
 
-  // Sync audio mute state with tacticalAudio engine
+  // SHOWCASE = landing page, DASHBOARD = flight deck. Single owner of navigation state.
+  const [appMode, setAppMode] = useState('SHOWCASE');
+  const [activeTab, setActiveTab] = useState('STUDIO');
+  const [isNavOpen, setIsNavOpen] = useState(true);
+  const [zuluClock, setZuluClock] = useState('');
+
   useEffect(() => {
     tacticalAudio.setMuted(!audioEnabled);
   }, [audioEnabled]);
 
-  // Update Zulu clock every second
   useEffect(() => {
-    const timer = setInterval(() => {
-      setMissionClock(new Date().toLocaleTimeString());
-    }, 1000);
+    const tick = () => setZuluClock(new Date().toLocaleTimeString([], { hour12: false }));
+    tick();
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const health = telemetry.health;
-  const isCritical = health.status === 'CRITICAL';
-  const isDegraded = health.status === 'DEGRADED';
+  const health = telemetry.health || {};
+  const ActiveTab = (TABS.find((t) => t.id === activeTab) || TABS[0]).component;
 
-  // Tabs Configuration
-  const tabs = [
-    { id: 'BLUEPRINT', label: '3D CAD STUDIO', icon: Box, component: UavBlueprintTab },
-    { id: 'TELEMETRY', label: 'LIVE TELEMETRY', icon: Activity, component: TelemetryTab },
-    { id: 'PROGNOSTICS', label: 'AI PROGNOSTICS & XAI', icon: Brain, component: PrognosticsTab },
-    { id: 'MISSION_MAP', label: 'RL REPLANNER', icon: Map, component: MissionMapTab },
-    { id: 'FLEET', label: 'SWARM FLEET', icon: Users, component: FleetTab },
-    { id: 'SANDBOX', label: "JUDGE'S SANDBOX", icon: Sliders, component: JudgesSandboxTab },
-    { id: 'COPILOT', label: 'COPILOT & REPORT', icon: FileText, component: CopilotTab },
-  ];
-
-  const handleNavigateFromLanding = (tabId) => {
+  const openDashboard = (tabId) => {
     tacticalAudio.playChirp();
     setActiveTab(tabId);
     setAppMode('DASHBOARD');
   };
 
-  const ActiveComponent = tabs.find(t => t.id === activeTab)?.component || UavBlueprintTab;
+  const statusTone =
+    health.status === 'CRITICAL' ? 'danger' : health.status === 'DEGRADED' ? 'warning' : 'success';
 
   return (
-    <div className={`min-h-screen bg-carbon-950 text-slate-100 flex flex-col font-sans relative selection:bg-tactical-amber selection:text-black ${appMode === 'DASHBOARD' ? (isSidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed') : ''}`}>
-      {/* =========================================================================
-          1. MILITARY TACTICAL HEADER & TOP MODE SWITCHER
-         ========================================================================= */}
-      <header className="hud-glass border-b border-tactical-amber/25 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 bg-carbon-900/95 backdrop-blur-xl">
-        {/* Left: Branding & UAV Metadata */}
-        <div className="flex items-center gap-3">
-          <button 
+    <div className="app-shell">
+      {/* ============================ Title bar ============================ */}
+      <header className="titlebar">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="traffic-lights">
+            <span className="tl-close" />
+            <span className="tl-min" />
+            <span className="tl-max" />
+          </div>
+          {appMode === 'SHOWCASE' ? (
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => {
+                tacticalAudio.playClick();
+                setAppMode('DASHBOARD');
+              }}
+              title="Open flight deck"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setIsNavOpen((v) => !v)}
+              title={isNavOpen ? 'Hide navigation' : 'Show navigation'}
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            type="button"
+            className="flex items-center gap-2 rounded-lg px-1.5 py-1 transition hover:bg-white/[0.06]"
             onClick={() => {
               tacticalAudio.playClick();
               setAppMode('SHOWCASE');
             }}
-            className="w-10 h-10 rounded-xl bg-carbon-800 border border-tactical-amber/40 hover:border-tactical-amber flex items-center justify-center transition-all hover:scale-105 shadow-tactical-amber"
-            title="Return to 3D Cinematic Showcase"
+            title="Back to overview"
           >
-            <Plane className="w-5 h-5 text-tactical-amber" />
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/10">
+              <Plane className="h-3.5 w-3.5 text-ink" />
+            </span>
+            <span className="text-[13px] font-semibold text-ink">AeroTwin</span>
+            <span className="hidden text-[11.5px] text-ink-dim sm:inline">
+              {appMode === 'SHOWCASE' ? 'Overview' : 'Flight Deck'}
+            </span>
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-bold text-sm tracking-wider text-white">
-                AEROTWIN // MALE UAV DIGITAL TWIN
-              </h1>
-              <span className="text-[10px] font-mono px-2 py-0.5 bg-tactical-amber/15 border border-tactical-amber/40 rounded-full text-tactical-amber font-bold">
-                MIL-STD-178C
-              </span>
-            </div>
-            <div className="text-[11px] font-mono text-slate-400">
-              ROTAX 915/916 iS PROGNOSTICS & MISSION RELIABILITY ({telemetry.mission.uavId})
-            </div>
-          </div>
         </div>
 
-        {/* Center: Mode Switcher Toggle & Mission Clock */}
-        <div className="flex items-center gap-2">
-          {/* Mode Switcher Buttons */}
-          <div className="flex items-center bg-carbon-950 p-1 rounded-xl border border-carbon-750 shadow-inner">
-            <button
-              onClick={() => {
-                tacticalAudio.playChirp();
-                setAppMode('SHOWCASE');
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
-                appMode === 'SHOWCASE'
-                  ? 'bg-tactical-amber text-black shadow-tactical-amber'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>3D SHOWCASE</span>
-            </button>
-
-            <button
-              onClick={() => {
-                tacticalAudio.playChirp();
-                setAppMode('DASHBOARD');
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
-                appMode === 'DASHBOARD'
-                  ? 'bg-tactical-amber text-black shadow-tactical-amber'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>FLIGHT DECK</span>
-            </button>
-          </div>
-
-          {/* Live Zulu Clock & Telemetry Ticker (Visible on wide screens) */}
-          <div className="hidden xl:flex items-center gap-3 bg-carbon-950/90 border border-carbon-750 px-3 py-1.5 rounded-xl text-xs font-mono">
-            <div className="flex items-center gap-1.5 text-slate-300">
-              <Clock className="w-3.5 h-3.5 text-tactical-amber" />
-              <span>ZULU: {missionClock}</span>
-            </div>
-            <div className="h-3 w-[1px] bg-carbon-700"></div>
-            <div className="text-slate-300">
-              ALT: <span className="text-white font-bold">{telemetry.mission.altitudeFt.toLocaleString()} FT</span>
-            </div>
-            <div className="h-3 w-[1px] bg-carbon-700"></div>
-            <div className="text-slate-300">
-              SPD: <span className="text-white font-bold">{telemetry.mission.airspeedKts} KTS</span>
-            </div>
-            <div className="h-3 w-[1px] bg-carbon-700"></div>
-            <div className="text-slate-300">
-              HEALTH: <span className={`font-bold ${isCritical ? 'text-red-400' : isDegraded ? 'text-amber-400' : 'text-emerald-400'}`}>
-                {health.index.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Audio Alarm Toggle & Connection Health Badge */}
-        <div className="flex items-center gap-2.5">
-          {/* Procedural Audio Alarm Toggle */}
-          <button
-            onClick={() => {
-              const newState = !audioEnabled;
-              setAudioEnabled(newState);
-              if (newState) tacticalAudio.playChirp();
-            }}
-            title={audioEnabled ? 'Tactical Audio: Active' : 'Tactical Audio: Muted'}
-            className={`p-2 rounded-xl border text-xs font-mono transition-all flex items-center gap-1 ${
-              audioEnabled
-                ? 'bg-tactical-amber/20 text-tactical-amber border-tactical-amber/60 shadow-tactical-amber'
-                : 'bg-carbon-950 text-slate-400 border-carbon-750 hover:text-slate-200'
-            }`}
-          >
-            {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </button>
-
-          {/* Connection Status */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-carbon-950 border border-carbon-750 text-xs font-mono">
-            <Radio className={`w-3.5 h-3.5 ${isConnected ? 'text-emerald-400 animate-pulse' : 'text-tactical-amber animate-pulse'}`} />
-            <span className={isConnected ? 'text-emerald-400 font-bold' : 'text-tactical-amber font-bold'}>
-              {isConnected ? 'CAN 100 HZ LIVE' : 'INTERNAL BRIDGE'}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="viewport-overlay hidden items-center gap-2 px-2.5 py-1.5 md:flex">
+            <Radio className={`h-3.5 w-3.5 ${isConnected ? 'text-success' : 'text-ink-faint'}`} />
+            <span className="font-mono text-[10.5px] text-ink-muted">
+              {isConnected ? 'CAN LINK' : 'SIMULATION'}
             </span>
           </div>
-
-          {/* Overall Health Status Badge */}
-          <div className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 border shadow-md ${
-            isCritical
-              ? 'bg-red-950/90 border-red-500 text-red-300 animate-pulse shadow-alert-red'
-              : isDegraded
-              ? 'bg-amber-950/90 border-amber-500 text-amber-300 shadow-tactical-amber'
-              : 'bg-emerald-950/90 border-emerald-500/70 text-emerald-400'
-          }`}>
-            {isCritical ? <ShieldAlert className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-            <span>{health.status}</span>
+          <div className="viewport-overlay hidden items-center gap-2 px-2.5 py-1.5 sm:flex">
+            <span className="badge badge-neutral">{health.status || '—'}</span>
+            <span className="font-mono text-[10.5px] text-ink-muted">
+              {health.index?.toFixed?.(1) ?? '—'}%
+            </span>
+          </div>
+          <div className="viewport-overlay hidden items-center px-2.5 py-1.5 lg:flex">
+            <span className="font-mono text-[10.5px] text-ink-muted">{zuluClock}Z</span>
+          </div>
+          <div className="viewport-overlay flex items-center gap-2 px-2.5 py-1.5">
+            <StatusDot tone={audioEnabled ? '#30D158' : '#7C7C82'} pulse={audioEnabled} />
+            <button
+              type="button"
+              className="font-mono text-[10.5px] text-ink-muted transition hover:text-ink"
+              onClick={() => setAudioEnabled(!audioEnabled)}
+            >
+              AUDIO
+            </button>
           </div>
         </div>
       </header>
 
-      {/* =========================================================================
-          2. GLOBAL FAULT INJECTION QUICK ACTION HUD BAR
-         ========================================================================= */}
-      <div className="bg-carbon-900 border-b border-carbon-800 px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
-        <div className="flex items-center gap-2">
-          <span className="text-tactical-amber flex items-center gap-1 font-bold">
-            <Flame className="w-3.5 h-3.5" /> QUICK FAULT INJECTION (DEMO / JUDGES):
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            onClick={() => {
-              tacticalAudio.playAlarm();
-              injectFault('CYL3_INJECTOR', 0.9);
-            }}
-            className={`px-2.5 py-1 rounded-lg border transition-all ${
-              health.activeFault === 'CYL3_INJECTOR'
-                ? 'bg-red-500 text-black font-bold border-red-500 shadow-alert-red'
-                : 'bg-carbon-950 text-red-400 border-red-500/30 hover:bg-red-950/50'
-            }`}
-          >
-            Cyl 3 Clog
-          </button>
-
-          <button
-            onClick={() => {
-              tacticalAudio.playAlarm();
-              injectFault('BLOW_BY', 0.85);
-            }}
-            className={`px-2.5 py-1 rounded-lg border transition-all ${
-              health.activeFault === 'BLOW_BY'
-                ? 'bg-amber-500 text-black font-bold border-amber-500 shadow-tactical-amber'
-                : 'bg-carbon-950 text-amber-400 border-amber-500/30 hover:bg-amber-950/50'
-            }`}
-          >
-            Piston Blow-By
-          </button>
-
-          <button
-            onClick={() => {
-              tacticalAudio.playAlarm();
-              injectFault('OIL_PUMP_CAVITATION', 0.95);
-            }}
-            className={`px-2.5 py-1 rounded-lg border transition-all ${
-              health.activeFault === 'OIL_PUMP_CAVITATION'
-                ? 'bg-red-500 text-black font-bold border-red-500 shadow-alert-red'
-                : 'bg-carbon-950 text-red-300 border-red-500/30 hover:bg-red-950/50'
-            }`}
-          >
-            Oil Cavitation
-          </button>
-
-          <button
-            onClick={() => {
-              tacticalAudio.playAlarm();
-              injectFault('TURBO_WASTEGATE_STUCK', 0.8);
-            }}
-            className={`px-2.5 py-1 rounded-lg border transition-all ${
-              health.activeFault === 'TURBO_WASTEGATE_STUCK'
-                ? 'bg-tactical-amber text-black font-bold border-tactical-amber shadow-tactical-amber'
-                : 'bg-carbon-950 text-tactical-amber border-tactical-amber/30 hover:bg-amber-950/50'
-            }`}
-          >
-            Turbo Surge
-          </button>
-
-          <button
-            onClick={() => {
-              tacticalAudio.playAlarm();
-              injectFault('COOLING_DEGRADATION', 0.85);
-            }}
-            className={`px-2.5 py-1 rounded-lg border transition-all ${
-              health.activeFault === 'COOLING_DEGRADATION'
-                ? 'bg-cryo-teal text-black font-bold border-cryo-teal shadow-cryo-teal'
-                : 'bg-carbon-950 text-cryo-teal border-cryo-teal/30 hover:bg-teal-950/50'
-            }`}
-          >
-            Cooling Decay
-          </button>
-
-          <button
-            onClick={() => {
-              tacticalAudio.playClick();
-              clearFault();
-            }}
-            className={`px-2.5 py-1 rounded-lg border transition-all ${
-              health.activeFault === 'NONE'
-                ? 'bg-emerald-500 text-black font-bold border-emerald-500'
-                : 'bg-carbon-950 text-emerald-400 border-emerald-500/30 hover:bg-emerald-950/50'
-            }`}
-          >
-            Clear All (Nominal)
-          </button>
-        </div>
-      </div>
-
-      {/* =========================================================================
-          3. ACTIVE FAULT ALERT NOTIFICATION BANNER
-         ========================================================================= */}
-      {(isCritical || isDegraded) && (
-        <div className={`px-4 py-2 flex items-center justify-between text-xs font-mono border-b ${
-          isCritical
-            ? 'bg-red-950/90 text-red-200 border-red-500/60 animate-pulse'
-            : 'bg-amber-950/90 text-amber-200 border-amber-500/60'
-        }`}>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-white" />
-            <span className="font-bold">{health.alertMessage}</span>
-          </div>
-          <button 
-            onClick={() => {
-              tacticalAudio.playChirp();
-              setActiveTab('MISSION_MAP');
-              setAppMode('DASHBOARD');
-            }}
-            className="font-bold underline cursor-pointer hover:text-white flex items-center gap-1"
-          >
-            <span>VIEW AUTONOMOUS RL REPLAN</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* =========================================================================
-          4. MAIN VIEWPORT (SHOWCASE SCROLLYTELLING VS FLIGHT DECK TABS)
-         ========================================================================= */}
-      {appMode === 'SHOWCASE' ? (
-        <LandingScrollytelling 
-          onNavigateTab={handleNavigateFromLanding}
-          onLaunchDashboard={() => {
-            tacticalAudio.playChirp();
-            setAppMode('DASHBOARD');
-          }}
-        />
-      ) : (
-        <>
-          {/* Operations Navigation Sidebar */}
-          <nav className="app-sidebar bg-carbon-900/95 border-r border-carbon-800 px-3 flex flex-col gap-1.5 z-40">
-            <button
-              type="button"
-              className="sidebar-toggle rounded-xl"
-              onClick={() => {
-                tacticalAudio.playClick();
-                setIsSidebarOpen(!isSidebarOpen);
-              }}
-              aria-label={isSidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
-              title={isSidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
-            >
-              <Menu className="w-5 h-5 text-tactical-amber" />
-              <span>NAVIGATION MENU</span>
+      {/* ===================== Health status strip ========================= */}
+      {appMode === 'DASHBOARD' ? (
+        health.status === 'CRITICAL' ? (
+          <div className="flex items-center justify-between gap-3 border-b border-danger/30 bg-danger/10 px-5 py-2">
+            <div className="flex items-center gap-2 text-[12.5px] text-ink">
+              <ShieldAlert className="h-4 w-4 shrink-0 text-danger" />
+              <span className="font-medium">{health.alertMessage}</span>
+            </div>
+            <button type="button" className="btn btn-sm btn-secondary" onClick={() => openDashboard('MISSION_MAP')}>
+              Open replanner
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              const Icon = tab.icon;
+          </div>
+        ) : health.status === 'DEGRADED' ? (
+          <div className="flex items-center justify-between gap-3 border-b border-warning/30 bg-warning/10 px-5 py-2">
+            <div className="flex items-center gap-2 text-[12.5px] text-ink">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
+              <span className="font-medium">{health.alertMessage}</span>
+            </div>
+            <button type="button" className="btn btn-sm btn-secondary" onClick={() => openDashboard('PROGNOSTICS')}>
+              Open prognostics
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 border-b border-line bg-surface/40 px-5 py-2">
+            <ShieldCheck className="h-4 w-4 text-success" />
+            <span className="text-[12.5px] text-ink-muted">All channels inside the learned flight envelope.</span>
+          </div>
+        )
+      ) : null}
 
+      {/* ===================== Fault injection console ===================== */}
+      {appMode === 'DASHBOARD' ? (
+        <div className="border-b border-line bg-surface/60 px-5 py-2.5">
+          <div className="mx-auto flex max-w-[1560px] flex-wrap items-center gap-2">
+            <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
+              Fault injection
+            </span>
+            {FAULTS.map((f) => {
+              const isActive = health.activeFault === f.id;
               return (
                 <button
-                  key={tab.id}
+                  key={f.id}
+                  type="button"
+                  className={`btn btn-sm ${isActive ? 'btn-danger' : 'btn-secondary'}`}
                   onClick={() => {
-                    tacticalAudio.playClick();
-                    setActiveTab(tab.id);
+                    tacticalAudio.playAlarm();
+                    injectFault(f.id, 0.9);
                   }}
-                  className={`py-2.5 px-3 text-xs font-mono whitespace-nowrap transition-all rounded-xl flex items-center gap-2 ${
-                    isActive
-                      ? 'bg-tactical-amber text-black font-bold shadow-tactical-amber'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-carbon-800'
-                  }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span className="sidebar-label">{tab.label}</span>
+                  {f.label}
                 </button>
               );
             })}
-          </nav>
+            <button
+              type="button"
+              className={`btn btn-sm ${health.activeFault === 'NONE' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => {
+                tacticalAudio.playClick();
+                clearFault();
+              }}
+            >
+              Nominal
+            </button>
+            <span className="ml-auto hidden font-mono text-2xs text-ink-dim md:inline">
+              UAV-01 · dual FADEC · CAN 2.0B @ 100 Hz
+            </span>
+          </div>
+        </div>
+      ) : null}
 
-          {/* Active Flight Deck Tab Content */}
-          <main className="flex-1 p-4 overflow-hidden relative">
-            <ActiveComponent />
-          </main>
-        </>
-      )}
+      {/* ============================ Main body ============================ */}
+      <div className="app-body">
+        {appMode === 'SHOWCASE' ? (
+          <div className="flex-1 overflow-y-auto">
+            <LandingPage onLaunchStudio={() => openDashboard('STUDIO')} onOpenTab={openDashboard} />
+          </div>
+        ) : (
+          <>
+            <nav className={`sidebar ${isNavOpen ? 'is-open' : 'is-hidden'}`}>
+              <div className="sidebar-section">Flight deck</div>
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    className={`sidebar-item ${activeTab === tab.id ? 'is-active' : ''}`}
+                    onClick={() => {
+                      tacticalAudio.playClick();
+                      setActiveTab(tab.id);
+                    }}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                );
+              })}
+
+              <div className="mt-auto flex flex-col gap-2 px-1 pt-4">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm w-full"
+                  onClick={() => {
+                    tacticalAudio.playClick();
+                    setIsNavOpen(false);
+                  }}
+                >
+                  Collapse
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm w-full ${statusTone === 'danger' ? 'btn-danger' : 'btn-ghost'}`}
+                  onClick={() => openDashboard('SANDBOX')}
+                >
+                  Diagnostics sandbox
+                </button>
+              </div>
+            </nav>
+
+            <main className="app-main">
+              <div className="content-scroll">
+                <ActiveTab />
+              </div>
+            </main>
+          </>
+        )}
+      </div>
     </div>
   );
 }
